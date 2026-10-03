@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Memory Game - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>🧠 Memory Game</h1>
+
+    <p id="sequence">Press Start.</p>
+
+    <input type="text" id="answer">
+    <button onclick="check()">Check</button>
+    <button onclick="startGame()">Start</button>
+
+    <p id="result"></p>
+
+</div>
+
+<script>
+    let sequence = "";
+
+    function startGame() {
+        sequence = "";
+
+        for (let i = 0; i < 4; i++) {
+            sequence += Math.floor(Math.random() * 10);
+        }
+
+        document.getElementById("sequence").textContent = sequence;
+
+        setTimeout(function () {
+            document.getElementById("sequence").textContent =
+                "Gone!";
+        }, 2000);
+    }
+
+    function check() {
+        const answer = document.getElementById("answer").value;
+
+        if (answer === sequence) {
+            document.getElementById("result").textContent =
+                "CORRECT!";
+        } else {
+            document.getElementById("result").textContent =
+                "Wrong. It was " + sequence + ".";
+        }
+    }
+</script>
+
+</body>
+</html>
