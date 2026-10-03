@@ -42,5 +42,29 @@
     <button type="button">Submit :3</button>
 </section>
     </div>
+    <script>
+    const button = document.querySelector("button");
+
+    button.addEventListener("click", function () {
+        const data = {
+            username: document.getElementById("username").value,
+            years: document.getElementById("years").value,
+            started: document.getElementById("started").value,
+            language: document.getElementById("language").value
+        };
+
+        const json = JSON.stringify(data, null, 4);
+
+        const blob = new Blob([json], {
+            type: "application/json"
+        });
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "developer-info.json";
+
+        link.click();
+    });
+</script>
 </body>
 </html>
