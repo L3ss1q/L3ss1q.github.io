@@ -1,1 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>L3ss1q's Cursed RPS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
 
+<body>
+
+<div class="card">
+
+    <h1>🪨📄✂️ Cursed RPS</h1>
+
+    <p>
+        Welcome to the worst Rock Paper Scissors game ever created.
+    </p>
+
+    <h2>Difficulty</h2>
+
+    <button onclick="setDifficulty('easy')">Easy</button>
+    <button onclick="setDifficulty('medium')">Medium</button>
+    <button onclick="setDifficulty('hard')">Hard</button>
+
+    <p id="difficulty">Difficulty: Easy</p>
+
+    <h2>Choose your weapon</h2>
+
+    <button onclick="play('rock')">🪨 Rock</button>
+    <button onclick="play('paper')">📄 Paper</button>
+    <button onclick="play('scissors')">✂️ Scissors</button>
+
+    <p id="result">Choose your weapon.</p>
+
+    <button id="secret" onclick="setDifficulty('impossible')">?</button>
+
+</div>
+
+<script>
+    let difficulty = "easy";
+
+    function setDifficulty(newDifficulty) {
+        difficulty = newDifficulty;
+
+        document.getElementById("difficulty").textContent =
+            "Difficulty: " +
+            newDifficulty.charAt(0).toUpperCase() +
+            newDifficulty.slice(1);
+
+        if (newDifficulty === "impossible") {
+            document.getElementById("result").textContent =
+                "...you found it.";
+        }
+    }
+
+    function play(player) {
+        const roll = Math.floor(Math.random() * 100) + 1;
+
+        let winChance;
+
+        if (difficulty === "easy") {
+            winChance = 50;
+        } else if (difficulty === "medium") {
+            winChance = 30;
+        } else if (difficulty === "hard") {
+            winChance = 10;
+        } else {
+            winChance = 1;
+        }
+
+        const choices = ["rock", "paper", "scissors"];
+        const computer = choices[Math.floor(Math.random() * 3)];
+
+        if (difficulty === "easy") {
+            if (roll <= 50) {
+                document.getElementById("result").textContent =
+                    "I chose " + computer + ". YOU WIN.";
+            } else {
+                document.getElementById("result").textContent =
+                    "I chose " + computer + ". YOU LOSE.";
+            }
+
+            return;
+        }
+
+        if (roll <= winChance) {
+            document.getElementById("result").textContent =
+                "I chose " + computer + ". YOU ARE THE CHOSEN ONE.";
+            return;
+        }
+
+        if (player === computer) {
+            document.getElementById("result").textContent =
+                "I chose " + computer + ". TIE.";
+            return;
+        }
+
+        if (
+            (player === "rock" && computer === "scissors") ||
+            (player === "paper" && computer === "rock") ||
+            (player === "scissors" && computer === "paper")
+        ) {
+            document.getElementById("result").textContent =
+                "I chose " + computer + ". YOU WIN.";
+        } else {
+            document.getElementById("result").textContent =
+                "I chose " + computer + ". YOU LOSE.";
+        }
+    }
+</script>
+
+</body>
+</html>
