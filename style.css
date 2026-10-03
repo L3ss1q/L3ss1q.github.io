@@ -30,3 +30,8 @@ a {
 a:hover {
     text-decoration: underline;
 }
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 20px;
+}
