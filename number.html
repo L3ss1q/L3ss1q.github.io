@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Guess the Number - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>🔢 Guess the Number</h1>
+
+    <p>I'm thinking of a number from 1 to 100.</p>
+
+    <input type="number" id="guess" min="1" max="100">
+    <button onclick="guessNumber()">Guess</button>
+
+    <p id="result">Make your guess.</p>
+
+</div>
+
+<script>
+    const secret = Math.floor(Math.random() * 100) + 1;
+    let attempts = 0;
+
+    function guessNumber() {
+        const guess = Number(document.getElementById("guess").value);
+        const result = document.getElementById("result");
+
+        if (guess < 1 || guess > 100) {
+            result.textContent = "Pick a number from 1 to 100.";
+            return;
+        }
+
+        attempts++;
+
+        if (guess < secret) {
+            result.textContent = "Too low.";
+        } else if (guess > secret) {
+            result.textContent = "Too high.";
+        } else {
+            result.textContent =
+                "YOU GOT IT. Attempts: " + attempts;
+        }
+    }
+</script>
+
+</body>
+</html>
