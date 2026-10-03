@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reaction Test - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>⚡ Reaction Test</h1>
+
+    <p id="result">Press Start.</p>
+
+    <button id="start" onclick="startGame()">Start</button>
+    <button id="click" onclick="react()" disabled>CLICK!</button>
+
+</div>
+
+<script>
+    let startTime = 0;
+    let timer;
+
+    function startGame() {
+        document.getElementById("result").textContent =
+            "WAIT FOR IT...";
+
+        document.getElementById("start").disabled = true;
+
+        const delay = Math.floor(Math.random() * 4000) + 2000;
+
+        timer = setTimeout(function () {
+            startTime = Date.now();
+
+            document.getElementById("result").textContent =
+                "CLICK NOW!";
+
+            document.getElementById("click").disabled = false;
+        }, delay);
+    }
+
+    function react() {
+        if (startTime === 0) {
+            return;
+        }
+
+        const time = Date.now() - startTime;
+
+        document.getElementById("result").textContent =
+            "Your reaction time: " + time + " ms";
+
+        document.getElementById("click").disabled = true;
+        document.getElementById("start").disabled = false;
+
+        startTime = 0;
+    }
+</script>
+
+</body>
+</html>
