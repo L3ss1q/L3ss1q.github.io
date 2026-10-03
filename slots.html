@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Suspicious Slot Machine - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>🎰 Suspicious Slot Machine</h1>
+
+    <p id="slots">[ ? ] [ ? ] [ ? ]</p>
+
+    <button onclick="spin()">SPIN</button>
+
+    <p id="result">Good luck.</p>
+
+</div>
+
+<script>
+    const symbols = ["🍒", "🍋", "🔔", "7", "💀"];
+
+    function spin() {
+        const a = symbols[Math.floor(Math.random() * symbols.length)];
+        const b = symbols[Math.floor(Math.random() * symbols.length)];
+        const c = symbols[Math.floor(Math.random() * symbols.length)];
+
+        document.getElementById("slots").textContent =
+            "[ " + a + " ] [ " + b + " ] [ " + c + " ]";
+
+        if (a === b && b === c) {
+            if (a === "💀") {
+                document.getElementById("result").textContent =
+                    "THE SLOT MACHINE HAS WON.";
+            } else {
+                document.getElementById("result").textContent =
+                    "JACKPOT!";
+            }
+        } else {
+            document.getElementById("result").textContent =
+                "You lose.";
+        }
+    }
+</script>
+
+</body>
+</html>
