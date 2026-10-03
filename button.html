@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DO NOT PRESS - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>🚨 DO NOT PRESS</h1>
+
+    <button onclick="press()">DO NOT PRESS</button>
+
+    <p id="result">Seriously.</p>
+
+</div>
+
+<script>
+    let presses = 0;
+
+    function press() {
+        presses++;
+
+        if (presses === 1) {
+            document.getElementById("result").textContent =
+                "I TOLD YOU NOT TO PRESS IT.";
+        } else if (presses === 10) {
+            document.getElementById("result").textContent =
+                "WHY ARE YOU STILL DOING THIS.";
+        } else {
+            document.getElementById("result").textContent =
+                "Press count: " + presses;
+        }
+    }
+</script>
+
+</body>
+</html>
