@@ -19,7 +19,17 @@
 </div>
 
 <script>
-    const symbols = ["🍒", "🍋", "🔔", "7", "💀"];
+    const symbols = [
+        "🍒",
+        "🍋",
+        "🔔",
+        "7",
+        "💾",
+        "💰",
+        "💎",
+        "🧰",
+        "💀"
+    ];
 
     function spin() {
         const a = symbols[Math.floor(Math.random() * symbols.length)];
@@ -29,17 +39,38 @@
         document.getElementById("slots").textContent =
             "[ " + a + " ] [ " + b + " ] [ " + c + " ]";
 
-        if (a === b && b === c) {
-            if (a === "💀") {
-                document.getElementById("result").textContent =
-                    "THE SLOT MACHINE HAS WON.";
-            } else {
-                document.getElementById("result").textContent =
-                    "JACKPOT!";
-            }
+        const result = document.getElementById("result");
+
+        if (a === "💀" && b === "💀" && c === "💀") {
+            result.textContent =
+                "THE SLOT MACHINE HAS WON.";
+        } else if (a === "🍒" && b === "🍒" && c === "🍒") {
+            result.textContent =
+                "TRANSGENDERISM.";
+        } else if (a === "🍋" && b === "🍋" && c === "🍋") {
+            result.textContent =
+                "SOUR ATTACK.";
+        } else if (a === "🔔" && b === "🔔" && c === "🔔") {
+            result.textContent =
+                "YOU LOSE YOUR EARDRUMS.";
+        } else if (a === "7" && b === "7" && c === "7") {
+            result.textContent =
+                "JACKPOT!";
+        } else if (a === "💾" && b === "💾" && c === "💾") {
+            result.textContent =
+                "MS-DOS HAS ENTERED THE CHAT.";
+        } else if (a === "💰" && b === "💰" && c === "💰") {
+            result.textContent =
+                "SUPER JACKPOT!";
+        } else if (a === "💎" && b === "💎" && c === "💎") {
+            result.textContent =
+                "MEGA JACKPOT!";
+        } else if (a === "🧰" && b === "🧰" && c === "🧰") {
+            result.textContent =
+                "ULTRA JACKPOT!";
         } else {
-            document.getElementById("result").textContent =
-                "You lose.";
+            result.textContent =
+                "ERROR.";
         }
     }
 </script>
