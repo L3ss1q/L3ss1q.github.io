@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Suspicious Coin - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<div class="card">
+
+    <h1>🪙 Suspicious Coin</h1>
+
+    <p>It's definitely a normal coin.</p>
+
+    <button onclick="flip()">Flip</button>
+
+    <p id="result">Heads or tails?</p>
+
+</div>
+
+<script>
+    function flip() {
+        const roll = Math.floor(Math.random() * 100) + 1;
+
+        if (roll === 1) {
+            document.getElementById("result").textContent =
+                "THE COIN HAS REJECTED YOU.";
+        } else if (roll <= 50) {
+            document.getElementById("result").textContent =
+                "Heads.";
+        } else {
+            document.getElementById("result").textContent =
+                "Tails.";
+        }
+    }
+</script>
+
+</body>
+</html>
