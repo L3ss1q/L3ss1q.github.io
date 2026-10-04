@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>13-Second Computer</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        overflow: hidden;
+        background: #050505;
+        color: #00ff66;
+        font-family: monospace;
+        transition:
+            background 1s,
+            color 1s,
+            transform 0.5s;
+    }
+
+    #terminal {
+        padding: 30px;
+        max-width: 900px;
+        margin: auto;
+    }
+
+    #screen {
+        border: 2px solid currentColor;
+        min-height: 70vh;
+        padding: 25px;
+        box-shadow: 0 0 20px currentColor;
+    }
+
+    #timer {
+        font-size: 5rem;
+        text-align: center;
+        margin: 30px;
+    }
+
+    #output {
+        white-space: pre-wrap;
+        line-height: 1.6;
+    }
+
+    .warning {
+        color: red;
+    }
+
+    .weird {
+        position: fixed;
+        pointer-events: none;
+        font-size: 24px;
+        font-weight: bold;
+        animation: disappear 2s forwards;
+    }
+
+    @keyframes disappear {
+        from {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        to {
+            opacity: 0;
+            transform: scale(3) rotate(180deg);
+        }
+    }
+
+    button {
+        background: black;
+        color: inherit;
+        border: 1px solid currentColor;
+        padding: 10px 20px;
+        font-family: monospace;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: currentColor;
+        color: black;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="terminal">
+
+    <div id="screen">
+
+        <h1>13-SECOND COMPUTER</h1>
+
+        <div id="timer">
+            13
+        </div>
+
+        <div id="output">
+BOOTING...
+
+Operating system: JavaScript
+CPU: browser
+RAM: probably enough
+
+Everything appears normal.
+        </div>
+
+        <br>
+
+        <button onclick="resetComputer()">
+            RESET COMPUTER
+        </button>
+
+    </div>
+
+</div>
+
+
+<script>
+
+let seconds = 0;
+let interval;
+
+
+/* -------------------------
+   SYSTEM MESSAGES
+------------------------- */
+
+const messages = {
+
+    13: `
+hello
+`,
+
+    26: `
+why are you still here
+`,
+
+    39: `
+document.body.style.transform = "rotate(1deg)"
+`,
+
+    52: `
+KEDO HAS DETECTED YOUR PRESENCE
+`,
+
+    65: `
+nothing happens.
+`,
+
+    78: `
+that was intentional.
+`,
+
+    91: `
+SYSTEM STATUS:
+probably fine
+`,
+
+    104: `
+I can see the mouse.
+`,
+
+    117: `
+You have been here for 117 seconds.
+Why?
+`,
+
+    130: `
+WARNING:
+
+The computer has become bored.
+`,
+
+    143: `
+Attempting to become a real operating system...
+`,
+
+    156: `
+ERROR:
+
+Operating system not found.
+
+Operating system currently running anyway.
+`,
+
+    169: `
+This is getting stupid.
+`,
+
+    182: `
+13-SECOND COMPUTER:
+
+I am beginning to question my design.
+`,
+
+    195: `
+KEDO.JS PANIC:
+
+TIME HAS BECOME A VARIABLE.
+`,
+
+    208: `
+...
+`,
+
+    221: `
+WHY IS THE USER STILL HERE
+`,
+
+    234: `
+Fine.
+
+Have a computer.
+`,
+
+    247: `
+[REDACTED]
+`,
+
+    260: `
+SYSTEM HAS GIVEN UP.
+`
+};
+
+
+/* -------------------------
+   TICK
+------------------------- */
+
+function tick() {
+
+    seconds++;
+
+    document.getElementById("timer")
+        .textContent = seconds;
+
+    if (messages[seconds]) {
+
+        document.getElementById("output")
+            .textContent +=
+            "\n\n[" + seconds + "s] " +
+            messages[seconds];
+
+    }
+
+    /*
+     * Every 13 seconds,
+     * make something weird happen.
+     */
+
+    if (seconds % 13 === 0) {
+
+        doSomethingWeird();
+
+    }
+
+    /*
+     * 13 minutes would be hilarious,
+     * but let's not make people wait that long.
+     */
+
+    if (seconds === 260) {
+
+        finalStage();
+
+    }
+}
+
+
+/* -------------------------
+   RANDOM WEIRDNESS
+------------------------- */
+
+function doSomethingWeird() {
+
+    const things = [
+
+        () => {
+            document.body.style.transform =
+                `rotate(${Math.random() * 2 - 1}deg)`;
+        },
+
+        () => {
+            document.body.style.fontSize =
+                (16 + Math.random() * 3) + "px";
+        },
+
+        () => {
+            spawnText("13");
+        },
+
+        () => {
+            spawnText("WHY");
+        },
+
+        () => {
+            spawnText("KEDO");
+        },
+
+        () => {
+            document.title =
+                "13-Second Computer [" +
+                seconds +
+                "]";
+        },
+
+        () => {
+            document.body.style.background =
+                `rgb(
+                    ${Math.random() * 20},
+                    ${Math.random() * 20},
+                    ${Math.random() * 20}
+                )`;
+        }
+
+    ];
+
+    const action =
+        things[Math.floor(Math.random() * things.length)];
+
+    action();
+}
+
+
+/* -------------------------
+   FLOATING TEXT
+------------------------- */
+
+function spawnText(text) {
+
+    const element =
+        document.createElement("div");
+
+    element.className = "weird";
+
+    element.textContent = text;
+
+    element.style.left =
+        Math.random() * 90 + "vw";
+
+    element.style.top =
+        Math.random() * 90 + "vh";
+
+    document.body.appendChild(element);
+
+    setTimeout(() => {
+        element.remove();
+    }, 2000);
+}
+
+
+/* -------------------------
+   FINAL STAGE
+------------------------- */
+
+function finalStage() {
+
+    clearInterval(interval);
+
+    document.body.style.background = "black";
+    document.body.style.color = "red";
+
+    document.getElementById("output")
+        .innerHTML = `
+            <span class="warning">
+            SYSTEM FAILURE
+
+            The computer has been running
+            for exactly 260 seconds.
+
+            It has decided this is enough.
+
+            Goodbye.
+            </span>
+        `;
+
+    document.getElementById("timer")
+        .textContent = "260";
+
+    /*
+     * After five seconds...
+     */
+
+    setTimeout(() => {
+
+        document.body.style.color = "#00ff66";
+
+        document.getElementById("output")
+            .textContent =
+            "That was probably unnecessary.";
+
+    }, 5000);
+}
+
+
+/* -------------------------
+   RESET
+------------------------- */
+
+function resetComputer() {
+
+    seconds = 0;
+
+    document.body.style =
+        "";
+
+    document.body.style.background =
+        "#050505";
+
+    document.body.style.color =
+        "#00ff66";
+
+    document.getElementById("timer")
+        .textContent = "0";
+
+    document.getElementById("output")
+        .textContent = `
+BOOTING...
+
+Operating system: JavaScript
+CPU: browser
+RAM: probably enough
+
+Everything appears normal.
+`;
+
+    document.title =
+        "13-Second Computer";
+
+    clearInterval(interval);
+
+    interval =
+        setInterval(tick, 1000);
+}
+
+
+/* -------------------------
+   START
+------------------------- */
+
+resetComputer();
+
+</script>
+
+</body>
+</html>
