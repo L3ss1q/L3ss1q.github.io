@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JavaScript Brain Damage Simulator</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: monospace;
+        background: #111;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        transition: transform 0.15s, background 0.2s;
+    }
+
+    #box {
+        text-align: center;
+        padding: 40px;
+        border: 3px solid white;
+        background: #181818;
+        box-shadow: 0 0 30px rgba(255,255,255,0.15);
+        transition: transform 0.2s;
+        z-index: 10;
+    }
+
+    h1 {
+        font-size: 2rem;
+    }
+
+    #counter {
+        font-size: 4rem;
+        margin: 20px;
+    }
+
+    button {
+        font-family: monospace;
+        font-size: 1.2rem;
+        padding: 15px 25px;
+        border: 2px solid white;
+        background: black;
+        color: white;
+        cursor: pointer;
+        transition: 0.1s;
+    }
+
+    button:hover {
+        background: white;
+        color: black;
+    }
+
+    #message {
+        margin-top: 20px;
+        min-height: 25px;
+    }
+
+    .why {
+        position: fixed;
+        pointer-events: none;
+        font-size: 20px;
+        font-weight: bold;
+        z-index: 9999;
+    }
+
+    .chaos {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9998;
+    }
+
+    #reset {
+        display: none;
+        margin-top: 20px;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="box">
+    <h1>JAVASCRIPT BRAIN DAMAGE SIMULATOR</h1>
+
+    <p>Something here is probably a bad idea.</p>
+
+    <div id="counter">0</div>
+
+    <button id="damage">DO NOT PRESS</button>
+
+    <div id="message">Reality appears stable.</div>
+
+    <button id="reset">RESET REALITY</button>
+</div>
+
+<script>
+let clicks = 0;
+
+const damage = document.getElementById("damage");
+const counter = document.getElementById("counter");
+const message = document.getElementById("message");
+const box = document.getElementById("box");
+const reset = document.getElementById("reset");
+
+const messages = [
+    "Reality appears stable.",
+    "Something moved.",
+    "Did you see that?",
+    "That wasn't supposed to happen.",
+    "WHY",
+    "JavaScript is becoming unstable.",
+    "The button knows what you're doing.",
+    "Please stop.",
+    "STOP.",
+    "This is your fault.",
+    "KEDO.JS HAS ENTERED THE CHAT.",
+    "REALITY.EXE IS QUESTIONABLE."
+];
+
+damage.addEventListener("click", () => {
+
+    clicks++;
+
+    counter.textContent = clicks;
+
+    // Rotate the entire page slightly
+    document.body.style.transform =
+        `rotate(${clicks * 0.15}deg)`;
+
+    // Random background color
+    const r = Math.floor(Math.random() * 80);
+    const g = Math.floor(Math.random() * 80);
+    const b = Math.floor(Math.random() * 80);
+
+    document.body.style.background =
+        `rgb(${r}, ${g}, ${b})`;
+
+    // Make the box wobble
+    box.style.transform =
+        `rotate(${Math.random() * 6 - 3}deg)
+         translate(${Math.random() * 10 - 5}px,
+                   ${Math.random() * 10 - 5}px)`;
+
+    // Change message
+    message.textContent =
+        messages[Math.min(clicks, messages.length - 1)];
+
+    // Console nonsense
+    console.log(
+        `[KEDO.JS] Reality integrity: ${Math.max(0, 100 - clicks * 7)}%`
+    );
+
+    // Spawn "why"
+    if (clicks >= 5) {
+        spawnWhy();
+    }
+
+    // Start making the button suspicious
+    if (clicks >= 8) {
+        damage.style.transform =
+            `translate(${Math.random() * 100 - 50}px,
+                       ${Math.random() * 50 - 25}px)`;
+    }
+
+    // 13 IS THE MAGIC NUMBER
+    if (clicks === 13) {
+        realityBreak();
+    }
+});
+
+
+function spawnWhy() {
+
+    const thing = document.createElement("div");
+
+    thing.className = "why";
+    thing.textContent = "why";
+
+    thing.style.left =
+        Math.random() * 100 + "vw";
+
+    thing.style.top =
+        Math.random() * 100 + "vh";
+
+    document.body.appendChild(thing);
+
+    setTimeout(() => {
+        thing.remove();
+    }, 2000);
+}
+
+
+function realityBreak() {
+
+    message.textContent =
+        "KEDO.JS: REALITY INTEGRITY = 13%";
+
+    console.log(
+        "%cKEDO.JS PANIC",
+        "color:red;font-size:30px;font-weight:bold"
+    );
+
+    // Spawn random nonsense
+    for (let i = 0; i < 30; i++) {
+
+        const thing = document.createElement("div");
+
+        thing.className = "chaos";
+
+        thing.textContent =
+            ["WHY", "13", "KEDO", "ERROR", "???", "undefined"]
+            [Math.floor(Math.random() * 6)];
+
+        thing.style.left =
+            Math.random() * 100 + "vw";
+
+        thing.style.top =
+            Math.random() * 100 + "vh";
+
+        thing.style.fontSize =
+            Math.random() * 30 + 10 + "px";
+
+        thing.style.transform =
+            `rotate(${Math.random() * 360}deg)`;
+
+        document.body.appendChild(thing);
+
+        setTimeout(() => {
+            thing.remove();
+        }, 3000);
+    }
+
+    // Temporarily make everything stupid
+    let interval = setInterval(() => {
+
+        document.body.style.transform =
+            `rotate(${Math.random() * 10 - 5}deg)
+             scale(${1 + Math.random() * 0.1})`;
+
+    }, 100);
+
+    setTimeout(() => {
+
+        clearInterval(interval);
+
+        document.body.style.transform = "";
+
+        message.textContent =
+            "That was probably a bad idea.";
+
+        reset.style.display = "inline-block";
+
+    }, 3000);
+}
+
+
+reset.addEventListener("click", () => {
+
+    clicks = 0;
+
+    counter.textContent = "0";
+
+    message.textContent =
+        "Reality appears stable.";
+
+    document.body.style.transform = "";
+
+    document.body.style.background = "#111";
+
+    box.style.transform = "";
+
+    damage.style.transform = "";
+
+    reset.style.display = "none";
+
+    document.querySelectorAll(".why, .chaos")
+        .forEach(element => element.remove());
+
+    console.log("[KEDO.JS] Reality restored.");
+});
+
+
+// Because obviously we need a cursor stalker.
+document.addEventListener("mousemove", (event) => {
+
+    if (clicks < 5) return;
+
+    const follower = document.getElementById("cursorThing");
+
+    if (!follower) {
+
+        const thing = document.createElement("div");
+
+        thing.id = "cursorThing";
+        thing.textContent = "👁";
+        thing.style.position = "fixed";
+        thing.style.pointerEvents = "none";
+        thing.style.zIndex = "99999";
+
+        document.body.appendChild(thing);
+    }
+
+    const thing = document.getElementById("cursorThing");
+
+    thing.style.left = (event.clientX + 15) + "px";
+    thing.style.top = (event.clientY + 15) + "px";
+});
+</script>
+
+</body>
+</html>
