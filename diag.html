@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Personal Diagnostics</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #080808;
+        color: #00ff66;
+        font-family: monospace;
+        overflow-x: hidden;
+    }
+
+    #scanlines {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            to bottom,
+            rgba(255,255,255,0.025) 0px,
+            rgba(255,255,255,0.025) 1px,
+            transparent 1px,
+            transparent 4px
+        );
+        z-index: 100;
+    }
+
+    header {
+        padding: 25px;
+        border-bottom: 2px solid #00ff66;
+        text-align: center;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: clamp(24px, 6vw, 48px);
+    }
+
+    #subtitle {
+        color: #888;
+        margin-top: 8px;
+    }
+
+    main {
+        max-width: 900px;
+        margin: auto;
+        padding: 25px;
+    }
+
+    #terminal {
+        background: #020202;
+        border: 2px solid #00ff66;
+        padding: 20px;
+        min-height: 260px;
+        box-shadow: 0 0 25px rgba(0,255,102,0.15);
+    }
+
+    .line {
+        margin: 8px 0;
+    }
+
+    .warning {
+        color: #ffff00;
+    }
+
+    .bad {
+        color: #ff4444;
+    }
+
+    .good {
+        color: #00ff66;
+    }
+
+    .weird {
+        color: #ff66ff;
+    }
+
+    #progressBox {
+        margin-top: 20px;
+        border: 1px solid #00ff66;
+        height: 25px;
+        padding: 3px;
+    }
+
+    #progress {
+        width: 0%;
+        height: 100%;
+        background: #00ff66;
+        transition: width 0.15s;
+    }
+
+    button {
+        margin-top: 20px;
+        padding: 14px 22px;
+        background: #00ff66;
+        color: #000;
+        border: none;
+        font-family: monospace;
+        font-weight: bold;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    button:hover {
+        background: white;
+    }
+
+    button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    #result {
+        margin-top: 25px;
+        padding: 20px;
+        border: 2px dashed #ff66ff;
+        display: none;
+        text-align: center;
+    }
+
+    #score {
+        font-size: 42px;
+        font-weight: bold;
+        color: #ff66ff;
+    }
+
+    .stat {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: 1px dotted #333;
+        padding: 7px 0;
+    }
+
+    #mouseWarning {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        color: #ff4444;
+        font-size: 12px;
+        pointer-events: none;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="scanlines"></div>
+
+<header>
+    <h1>PERSONAL DIAGNOSTICS</h1>
+    <div id="subtitle">
+        Browser Integrity & Questionable Decision Analysis System
+    </div>
+</header>
+
+<main>
+
+    <div id="terminal">
+        <div class="line">
+            &gt; Diagnostics system initialized.
+        </div>
+
+        <div class="line">
+            &gt; Awaiting subject...
+        </div>
+
+        <div class="line warning">
+            &gt; WARNING: Subject appears to be operating JavaScript.
+        </div>
+
+        <div class="line">
+            &gt; Press the button to begin.
+        </div>
+    </div>
+
+    <div id="progressBox">
+        <div id="progress"></div>
+    </div>
+
+    <button id="run">RUN DIAGNOSTICS</button>
+
+    <div id="result">
+        <h2>DIAGNOSTIC RESULTS</h2>
+
+        <div id="score">???</div>
+
+        <p id="verdict"></p>
+
+        <div id="stats"></div>
+    </div>
+
+</main>
+
+<div id="mouseWarning"></div>
+
+<script>
+
+let mouseMoves = 0;
+let clicks = 0;
+let startTime = Date.now();
+let running = false;
+
+document.addEventListener("mousemove", () => {
+    mouseMoves++;
+});
+
+document.addEventListener("click", () => {
+    clicks++;
+});
+
+const terminal = document.getElementById("terminal");
+const progress = document.getElementById("progress");
+const runButton = document.getElementById("run");
+const result = document.getElementById("result");
+const stats = document.getElementById("stats");
+const scoreDisplay = document.getElementById("score");
+const verdict = document.getElementById("verdict");
+const mouseWarning = document.getElementById("mouseWarning");
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function log(text, className = "") {
+
+    const line = document.createElement("div");
+
+    line.className = "line " + className;
+
+    line.textContent = "> " + text;
+
+    terminal.appendChild(line);
+
+    terminal.scrollTop = terminal.scrollHeight;
+}
+
+function randomChoice(array) {
+    return array[Math.floor(Math.random() * array.length)];
+}
+
+async function diagnostic(name, action, percentage) {
+
+    log("Running module: " + name);
+
+    await wait(500 + Math.random() * 700);
+
+    action();
+
+    progress.style.width = percentage + "%";
+
+    await wait(250);
+}
+
+runButton.addEventListener("click", async () => {
+
+    if (running) return;
+
+    running = true;
+
+    runButton.disabled = true;
+
+    terminal.innerHTML = "";
+
+    result.style.display = "none";
+
+    progress.style.width = "0%";
+
+    log("Beginning personal diagnostics...");
+    await wait(500);
+
+    let score = 50;
+
+    await diagnostic(
+        "JAVASCRIPT",
+        () => {
+            log("JavaScript detected.", "good");
+            log("Subject willingly executed arbitrary code.", "warning");
+            score += 5;
+        },
+        10
+    );
+
+    await diagnostic(
+        "SCREEN",
+        () => {
+
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+
+            log(
+                "Viewport detected: " +
+                width + " × " + height,
+                "good"
+            );
+
+            if (width < 500) {
+                log(
+                    "Small screen detected. Tablet/phone chaos likely.",
+                    "warning"
+                );
+            }
+
+        },
+        20
+    );
+
+    await diagnostic(
+        "NETWORK",
+        () => {
+
+            if (navigator.onLine) {
+                log("Browser reports: ONLINE.", "good");
+                score += 5;
+            } else {
+                log("Browser reports: OFFLINE.", "warning");
+                score -= 5;
+            }
+
+        },
+        30
+    );
+
+    await diagnostic(
+        "MOUSE ACTIVITY",
+        () => {
+
+            log(
+                "Mouse movement events: " + mouseMoves
+            );
+
+            if (mouseMoves > 100) {
+                log(
+                    "Excessive cursor activity detected.",
+                    "warning"
+                );
+
+                score -= 2;
+            } else {
+                log(
+                    "Cursor behavior appears reasonably normal.",
+                    "good"
+                );
+            }
+
+        },
+        40
+    );
+
+    await diagnostic(
+        "CLICK ANALYSIS",
+        () => {
+
+            log("Click events recorded: " + clicks);
+
+            if (clicks > 20) {
+                log(
+                    "Subject has been pressing things.",
+                    "warning"
+                );
+            } else {
+                log(
+                    "Click frequency acceptable.",
+                    "good"
+                );
+            }
+
+        },
+        50
+    );
+
+    await diagnostic(
+        "TIME ANALYSIS",
+        () => {
+
+            const seconds =
+                Math.floor((Date.now() - startTime) / 1000);
+
+            log(
+                "Time spent on page: " +
+                seconds +
+                " seconds."
+            );
+
+            if (seconds >= 13) {
+                log(
+                    "13-second threshold exceeded.",
+                    "weird"
+                );
+
+                score += 13;
+            }
+
+        },
+        60
+    );
+
+    await diagnostic(
+        "TAB DETECTION",
+        () => {
+
+            log(
+                "Attempting to determine number of open tabs..."
+            );
+
+            log(
+                "Browser refused to tell us.",
+                "warning"
+            );
+
+            log(
+                "This is probably for the best.",
+                "good"
+            );
+
+        },
+        70
+    );
+
+    await diagnostic(
+        "DECISION MAKING",
+        () => {
+
+            const decisions = [
+                "Questionable.",
+                "Surprisingly functional.",
+                "Concerning but operational.",
+                "Excellent.",
+                "Absolutely incomprehensible.",
+                "Probably fine.",
+                "KEDO-compatible."
+            ];
+
+            const decision = randomChoice(decisions);
+
+            log(
+                "Decision-making assessment: " + decision,
+                "weird"
+            );
+
+            score += Math.floor(Math.random() * 11) - 5;
+
+        },
+        80
+    );
+
+    await diagnostic(
+        "13 FACTOR",
+        () => {
+
+            log(
+                "Calculating 13-factor..."
+            );
+
+            await wait(1);
+
+            log(
+                "13-factor = " +
+                (Math.floor(Math.random() * 130) + 13),
+                "weird"
+            );
+
+        },
+        90
+    );
+
+    await diagnostic(
+        "FINAL JUDGEMENT",
+        () => {
+
+            score = Math.max(0, Math.min(100, score));
+
+            log(
+                "Diagnostics complete.",
+                "good"
+            );
+
+            log(
+                "Generating completely unscientific conclusion..."
+            );
+
+        },
+        100
+    );
+
+    await wait(700);
+
+    scoreDisplay.textContent = score + "/100";
+
+    const verdicts = [
+        "You are probably fine.",
+        "System operational. Brain questionable.",
+        "No major problems detected. Several minor concerns detected.",
+        "Subject appears surprisingly functional.",
+        "Diagnostics have raised more questions than answers.",
+        "KEDO would probably accept this.",
+        "JavaScript has judged you. It refuses to elaborate.",
+        "Everything is normal. This is suspicious."
+    ];
+
+    verdict.textContent = randomChoice(verdicts);
+
+    const seconds =
+        Math.floor((Date.now() - startTime) / 1000);
+
+    stats.innerHTML = `
+        <div class="stat">
+            <span>Viewport</span>
+            <span>${window.innerWidth} × ${window.innerHeight}</span>
+        </div>
+
+        <div class="stat">
+            <span>Online</span>
+            <span>${navigator.onLine ? "YES" : "NO"}</span>
+        </div>
+
+        <div class="stat">
+            <span>Mouse activity</span>
+            <span>${mouseMoves}</span>
+        </div>
+
+        <div class="stat">
+            <span>Clicks</span>
+            <span>${clicks}</span>
+        </div>
+
+        <div class="stat">
+            <span>Time observed</span>
+            <span>${seconds}s</span>
+        </div>
+
+        <div class="stat">
+            <span>Tabs detected</span>
+            <span>UNMEASURABLE</span>
+        </div>
+
+        <div class="stat">
+            <span>Scientific validity</span>
+            <span>0%</span>
+        </div>
+    `;
+
+    result.style.display = "block";
+
+    runButton.textContent = "RUN AGAIN";
+
+    running = false;
+
+    runButton.disabled = false;
+
+    startTime = Date.now();
+});
+
+setInterval(() => {
+
+    if (mouseMoves > 200) {
+
+        mouseWarning.textContent =
+            "⚠ STOP MOVING THE MOUSE YOU'RE MAKING IT NERVOUS";
+
+    } else if (mouseMoves > 100) {
+
+        mouseWarning.textContent =
+            "⚠ Excessive cursor activity";
+
+    } else {
+
+        mouseWarning.textContent = "";
+
+    }
+
+}, 500);
+
+</script>
+
+</body>
+</html>
