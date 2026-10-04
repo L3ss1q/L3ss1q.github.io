@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Unit Converter</title>
+
+    <!-- Use the site's existing stylesheet -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Converter-specific styling only -->
+    <style>
+        .converter-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .converter-row input,
+        .converter-row select {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="converter">
+
+        <h1>Unit Converter</h1>
+
+        <label for="category">Category</label>
+
+        <select id="category">
+            <option value="length">Length</option>
+            <option value="mass">Mass</option>
+            <option value="temperature">Temperature</option>
+            <option value="volume">Volume</option>
+            <option value="time">Time</option>
+            <option value="data">Data</option>
+            <option value="speed">Speed</option>
+            <option value="music">Music</option>
+        </select>
+
+        <div class="converter-row">
+
+            <input
+                id="value"
+                type="number"
+                placeholder="Enter a value"
+            >
+
+            <select id="from"></select>
+
+            <select id="to"></select>
+
+        </div>
+
+        <button id="convertButton">Convert</button>
+
+        <div id="result">
+            Result will appear here.
+        </div>
+
+    </main>
+
+
+    <script>
+
+        const units = {
+
+            length: {
+                mm: 0.001,
+                cm: 0.01,
+                m: 1,
+                km: 1000,
+                in: 0.0254,
+                ft: 0.3048,
+                yd: 0.9144,
+                mi: 1609.344
+            },
+
+            mass: {
+                mg: 0.000001,
+                g: 0.001,
+                kg: 1,
+                oz: 0.028349523125,
+                lb: 0.45359237
+            },
+
+            volume: {
+                ml: 0.001,
+                l: 1,
+                cup: 0.2365882365,
+                pint: 0.473176473,
+                quart: 0.946352946,
+                gallon: 3.785411784
+            },
+
+            time: {
+                ms: 0.001,
+                s: 1,
+                min: 60,
+                hr: 3600,
+                day: 86400,
+                week: 604800
+            },
+
+            data: {
+                bit: 0.125,
+                byte: 1,
+                KiB: 1024,
+                MiB: 1024 ** 2,
+                GiB: 1024 ** 3,
+                TiB: 1024 ** 4
+            },
+
+            speed: {
+                "m/s": 1,
+                "km/h": 0.2777777778,
+                mph: 0.44704,
+                knot: 0.5144444444
+            },
+
+            temperature: {
+                "°C": 1,
+                "°F": 1,
+                K: 1
+            },
+
+            music: {
+                BPM: 1,
+                "ms/beat": 1,
+                "sec/beat": 1
+            }
+
+        };
+
+
+        const categorySelect = document.getElementById("category");
+        const fromSelect = document.getElementById("from");
+        const toSelect = document.getElementById("to");
+        const valueInput = document.getElementById("value");
+        const result = document.getElementById("result");
+        const convertButton = document.getElementById("convertButton");
+
+
+        function populateUnits() {
+
+            const category = categorySelect.value;
+
+            fromSelect.innerHTML = "";
+            toSelect.innerHTML = "";
+
+            for (const unit in units[category]) {
+
+                const fromOption = document.createElement("option");
+                fromOption.value = unit;
+                fromOption.textContent = unit;
+
+                const toOption = document.createElement("option");
+                toOption.value = unit;
+                toOption.textContent = unit;
+
+                fromSelect.appendChild(fromOption);
+                toSelect.appendChild(toOption);
+            }
+
+            if (toSelect.options.length > 1) {
+                toSelect.selectedIndex = 1;
+            }
+        }
+
+
+        function convert() {
+
+            const category = categorySelect.value;
+            const value = Number(valueInput.value);
+
+            const from = fromSelect.value;
+            const to = toSelect.value;
+
+            if (!Number.isFinite(value)) {
+
+                result.textContent = "Please enter a number.";
+
+                return;
+            }
+
+
+            /*
+             * Temperature needs special handling because
+             * Celsius, Fahrenheit, and Kelvin don't scale
+             * from a shared zero point.
+             */
+
+            if (category === "temperature") {
+
+                let celsius;
+
+                if (from === "°C") {
+                    celsius = value;
+                }
+
+                else if (from === "°F") {
+                    celsius = (value - 32) * 5 / 9;
+                }
+
+                else {
+                    celsius = value - 273.15;
+                }
+
+
+                let converted;
+
+                if (to === "°C") {
+                    converted = celsius;
+                }
+
+                else if (to === "°F") {
+                    converted = celsius * 9 / 5 + 32;
+                }
+
+                else {
+                    converted = celsius + 273.15;
+                }
+
+
+                result.textContent =
+                    `${value} ${from} = ${formatNumber(converted)} ${to}`;
+
+                return;
+            }
+
+
+            /*
+             * Music conversions:
+             *
+             * BPM <-> milliseconds per beat
+             * BPM <-> seconds per beat
+             */
+
+            if (category === "music") {
+
+                let milliseconds;
+
+                if (from === "BPM") {
+                    milliseconds = 60000 / value;
+                }
+
+                else if (from === "ms/beat") {
+                    milliseconds = value;
+                }
+
+                else {
+                    milliseconds = value * 1000;
+                }
+
+
+                let converted;
+
+                if (to === "BPM") {
+                    converted = 60000 / milliseconds;
+                }
+
+                else if (to === "ms/beat") {
+                    converted = milliseconds;
+                }
+
+                else {
+                    converted = milliseconds / 1000;
+                }
+
+
+                result.textContent =
+                    `${value} ${from} = ${formatNumber(converted)} ${to}`;
+
+                return;
+            }
+
+
+            /*
+             * Normal conversions.
+             *
+             * First convert to the category's base unit,
+             * then convert from the base unit to the target.
+             */
+
+            const baseValue =
+                value * units[category][from];
+
+            const converted =
+                baseValue / units[category][to];
+
+
+            result.textContent =
+                `${value} ${from} = ${formatNumber(converted)} ${to}`;
+        }
+
+
+        function formatNumber(number) {
+
+            if (Number.isInteger(number)) {
+                return number.toString();
+            }
+
+            return Number(number.toPrecision(12)).toString();
+        }
+
+
+        categorySelect.addEventListener(
+            "change",
+            populateUnits
+        );
+
+
+        convertButton.addEventListener(
+            "click",
+            convert
+        );
+
+
+        populateUnits();
+
+    </script>
+
+</body>
+</html>
