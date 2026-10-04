@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bigback Calc - L3ss1q</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .calculator {
+            max-width: 420px;
+            margin: auto;
+        }
+
+        #display {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 18px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            background: #f8f8f8;
+            font-size: 28px;
+            text-align: right;
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .calc-buttons button {
+            margin: 0;
+            min-height: 55px;
+            font-size: 20px;
+        }
+
+        .equals {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="card calculator">
+
+    <h1>🧮 Bigback Calc</h1>
+
+    <input
+        type="text"
+        id="display"
+        value="0"
+        readonly
+    >
+
+    <div class="calc-buttons">
+        <button onclick="clearCalc()">C</button>
+        <button onclick="backspace()">⌫</button>
+        <button onclick="percent()">%</button>
+        <button onclick="operate('÷')">÷</button>
+
+        <button onclick="number('7')">7</button>
+        <button onclick="number('8')">8</button>
+        <button onclick="number('9')">9</button>
+        <button onclick="operate('×')">×</button>
+
+        <button onclick="number('4')">4</button>
+        <button onclick="number('5')">5</button>
+        <button onclick="number('6')">6</button>
+        <button onclick="operate('-')">−</button>
+
+        <button onclick="number('1')">1</button>
+        <button onclick="number('2')">2</button>
+        <button onclick="number('3')">3</button>
+        <button onclick="operate('+')">+</button>
+
+        <button onclick="toggleSign()">±</button>
+        <button onclick="number('0')">0</button>
+        <button onclick="decimal()">.</button>
+        <button onclick="operate('^')">^</button>
+
+        <button onclick="squareRoot()">√</button>
+        <button class="equals" onclick="calculate()">=</button>
+    </div>
+
+    <p id="result"></p>
+
+</div>
+
+<script>
+    let current = "0";
+    let previous = null;
+    let operator = null;
+    let waitingForNumber = false;
+
+    const display = document.getElementById("display");
+
+    function updateDisplay() {
+        display.value = current;
+    }
+
+    function number(value) {
+        if (waitingForNumber) {
+            current = value;
+            waitingForNumber = false;
+        } else if (current === "0") {
+            current = value;
+        } else {
+            current += value;
+        }
+
+        updateDisplay();
+    }
+
+    function decimal() {
+        if (waitingForNumber) {
+            current = "0.";
+            waitingForNumber = false;
+        } else if (!current.includes(".")) {
+            current += ".";
+        }
+
+        updateDisplay();
+    }
+
+    function operate(nextOperator) {
+        if (operator !== null && !waitingForNumber) {
+            calculate();
+        }
+
+        previous = Number(current);
+        operator = nextOperator;
+        waitingForNumber = true;
+    }
+
+    function calculate() {
+        if (operator === null || previous === null) {
+            return;
+        }
+
+        const second = Number(current);
+        let answer;
+
+        if (operator === "+") {
+            answer = previous + second;
+        } else if (operator === "-") {
+            answer = previous - second;
+        } else if (operator === "×") {
+            answer = previous * second;
+        } else if (operator === "÷") {
+            if (second === 0) {
+                current = "ERROR";
+                resetOperation();
+                updateDisplay();
+                return;
+            }
+
+            answer = previous / second;
+        } else if (operator === "^") {
+            answer = previous ** second;
+        }
+
+        if (!Number.isFinite(answer)) {
+            current = "ERROR";
+        } else {
+            current = String(answer);
+        }
+
+        resetOperation();
+        updateDisplay();
+    }
+
+    function squareRoot() {
+        const value = Number(current);
+
+        if (value < 0) {
+            current = "DOMAIN ERROR";
+        } else {
+            current = String(Math.sqrt(value));
+        }
+
+        updateDisplay();
+    }
+
+    function toggleSign() {
+        if (current === "0" || current === "ERROR") {
+            return;
+        }
+
+        if (current.startsWith("-")) {
+            current = current.slice(1);
+        } else {
+            current = "-" + current;
+        }
+
+        updateDisplay();
+    }
+
+    function percent() {
+        const value = Number(current);
+
+        current = String(value / 100);
+
+        updateDisplay();
+    }
+
+    function backspace() {
+        if (current.length <= 1 || current === "ERROR") {
+            current = "0";
+        } else {
+            current = current.slice(0, -1);
+        }
+
+        updateDisplay();
+    }
+
+    function clearCalc() {
+        current = "0";
+        resetOperation();
+        updateDisplay();
+    }
+
+    function resetOperation() {
+        previous = null;
+        operator = null;
+        waitingForNumber = false;
+    }
+</script>
+
+</body>
+</html>
