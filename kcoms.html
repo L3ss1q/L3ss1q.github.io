@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>KEDO DOS — Commits</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .commit {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid currentColor;
+            border-radius: 8px;
+        }
+
+        .commit h2 {
+            margin-top: 0;
+        }
+
+        .commit-message {
+            white-space: pre-wrap;
+        }
+
+        .commit-meta {
+            opacity: 0.7;
+            font-size: 0.9em;
+        }
+
+        .commit a {
+            display: inline-block;
+            margin-top: 8px;
+        }
+
+        #status {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main>
+
+        <h1>KEDO DOS — Commit History</h1>
+
+        <p>
+            Development history for KEDO DOS [Sofya].
+        </p>
+
+        <div id="status">
+            Loading commits...
+        </div>
+
+        <div id="commits"></div>
+
+    </main>
+
+
+    <script>
+
+        /*
+         * CHANGE THESE TWO VALUES
+         */
+
+        const GITHUB_USERNAME = "L3ss1q";
+        const GITHUB_REPOSITORY = "SOFYA.SOBRIC bm1 V√9i";
+
+
+        const status = document.getElementById("status");
+        const commitsContainer = document.getElementById("commits");
+
+
+        async function loadCommits() {
+
+            const url =
+                `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPOSITORY}/commits?per_page=30`;
+
+
+            try {
+
+                const response = await fetch(url);
+
+
+                if (!response.ok) {
+                    throw new Error(
+                        `GitHub returned HTTP ${response.status}`
+                    );
+                }
+
+
+                const commits = await response.json();
+
+
+                status.textContent =
+                    `Showing the latest ${commits.length} commits.`;
+
+
+                for (const commit of commits) {
+
+                    const commitElement =
+                        document.createElement("article");
+
+                    commitElement.className = "commit";
+
+
+                    const message =
+                        commit.commit.message;
+
+
+                    const firstLine =
+                        message.split("\n")[0];
+
+
+                    const author =
+                        commit.commit.author.name;
+
+
+                    const date =
+                        new Date(commit.commit.author.date);
+
+
+                    const formattedDate =
+                        date.toLocaleString();
+
+
+                    const shortHash =
+                        commit.sha.substring(0, 7);
+
+
+                    commitElement.innerHTML = `
+
+                        <h2>${escapeHTML(firstLine)}</h2>
+
+                        <div class="commit-meta">
+                            ${escapeHTML(shortHash)}
+                            —
+                            ${escapeHTML(author)}
+                            —
+                            ${escapeHTML(formattedDate)}
+                        </div>
+
+                        <p class="commit-message">
+                            ${escapeHTML(message)}
+                        </p>
+
+                        <a
+                            href="${commit.html_url}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            View commit on GitHub
+                        </a>
+
+                    `;
+
+
+                    commitsContainer.appendChild(
+                        commitElement
+                    );
+                }
+
+            }
+
+            catch (error) {
+
+                status.textContent =
+                    "Failed to load KEDO commits.";
+
+                console.error(error);
+
+            }
+
+        }
+
+
+        /*
+         * Prevent commit messages from being interpreted
+         * as HTML.
+         */
+
+        function escapeHTML(text) {
+
+            return text
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+
+        }
+
+
+        loadCommits();
+
+    </script>
+
+</body>
+</html>
