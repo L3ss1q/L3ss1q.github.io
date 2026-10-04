@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Element Zoo v2</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #172017;
+    color: white;
+    font-family: monospace;
+}
+
+header {
+    padding: 20px;
+    background: #0b100b;
+    border-bottom: 2px solid #66ff99;
+}
+
+header h1 {
+    margin: 0;
+}
+
+#controls {
+    padding: 12px;
+    background: #111;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+button {
+    font-family: monospace;
+    background: #222;
+    color: white;
+    border: 1px solid #66ff99;
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #66ff99;
+    color: black;
+}
+
+#zoo {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.animal {
+    background: #202820;
+    border: 2px solid #555;
+    padding: 15px;
+    min-height: 220px;
+    transition: transform 0.2s;
+}
+
+.animal:hover {
+    border-color: #66ff99;
+}
+
+.emoji {
+    font-size: 3rem;
+}
+
+.species {
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.stat {
+    color: #aaa;
+    margin: 4px 0;
+}
+
+.mood {
+    color: #66ff99;
+}
+
+.danger {
+    border-color: red;
+    box-shadow: 0 0 15px red;
+}
+
+.escaping {
+    position: fixed;
+    z-index: 9999;
+}
+
+#log {
+    margin: 20px;
+    padding: 15px;
+    background: black;
+    border: 1px solid #555;
+    height: 170px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+#population {
+    color: #66ff99;
+}
+
+/* The blink specimen */
+.blinking {
+    animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+    50% {
+        opacity: 0;
+    }
+}
+
+/* Table specimen */
+.organized {
+    order: -1;
+}
+
+/* Mutants */
+.mutant {
+    border-color: #ff66ff;
+    box-shadow: 0 0 12px #ff66ff;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🧬 HTML ELEMENT ZOO v2</h1>
+    <p>
+        A completely legitimate study of DOM-based lifeforms.
+    </p>
+    <p>
+        Population:
+        <span id="population">0</span>
+    </p>
+</header>
+
+<div id="controls">
+
+    <button onclick="spawnAnimal()">
+        CREATE ELEMENT
+    </button>
+
+    <button onclick="breedAnimals()">
+        BREED
+    </button>
+
+    <button onclick="mutateAnimal()">
+        MUTATE
+    </button>
+
+    <button onclick="feedAnimals()">
+        FEED
+    </button>
+
+    <button onclick="organizeTable()">
+        LET THE TABLE ORGANIZE EVERYONE
+    </button>
+
+    <button onclick="releaseAll()">
+        RELEASE ALL
+    </button>
+
+</div>
+
+<div id="zoo"></div>
+
+<div id="log">Zoo initialized...</div>
+
+
+<script>
+
+let idCounter = 0;
+
+
+/* ==============================
+   SPECIES
+============================== */
+
+const species = {
+
+    div: {
+        emoji: "⬜",
+        mood: "confused",
+        lifespan: 60
+    },
+
+    span: {
+        emoji: "➖",
+        mood: "fast",
+        lifespan: 40
+    },
+
+    button: {
+        emoji: "🔘",
+        mood: "aggressive",
+        lifespan: 70
+    },
+
+    p: {
+        emoji: "📜",
+        mood: "talkative",
+        lifespan: 90
+    },
+
+    marquee: {
+        emoji: "💨",
+        mood: "uncontrollable",
+        lifespan: 30
+    },
+
+    table: {
+        emoji: "📊",
+        mood: "organized",
+        lifespan: 120
+    },
+
+    blink: {
+        emoji: "👁️",
+        mood: "ominous",
+        lifespan: 13
+    },
+
+    script: {
+        emoji: "💀",
+        mood: "DANGEROUS",
+        lifespan: 5
+    }
+
+};
+
+
+/* ==============================
+   RANDOM
+============================== */
+
+function random(array) {
+    return array[Math.floor(Math.random() * array.length)];
+}
+
+
+/* ==============================
+   CREATE
+============================== */
+
+function spawnAnimal(speciesName = null, generation = 1) {
+
+    const name =
+        speciesName || random(Object.keys(species));
+
+    idCounter++;
+
+    const animal = {
+        id: idCounter,
+        species: name,
+        generation: generation,
+        age: 0,
+        health: 100,
+        mood: species[name].mood
+    };
+
+    renderAnimal(animal);
+
+    log(
+        `Born: <${name}> #${animal.id}`
+    );
+
+    updatePopulation();
+}
+
+
+/* ==============================
+   RENDER
+============================== */
+
+function renderAnimal(animal) {
+
+    const card =
+        document.createElement("div");
+
+    card.className = "animal";
+
+    card.dataset.id = animal.id;
+    card.dataset.species = animal.species;
+
+    if (animal.species === "script") {
+        card.classList.add("danger");
+    }
+
+    if (animal.species === "blink") {
+        card.classList.add("blinking");
+    }
+
+    if (animal.generation > 1) {
+        card.classList.add("mutant");
+    }
+
+    card.innerHTML = `
+        <div class="emoji">
+            ${species[animal.species]?.emoji || "☠️"}
+        </div>
+
+        <div class="species">
+            &lt;${animal.species}&gt; #${animal.id}
+        </div>
+
+        <hr>
+
+        <div class="stat">
+            Age:
+            <span class="age">${animal.age}</span>
+        </div>
+
+        <div class="stat">
+            Health:
+            <span class="health">${animal.health}</span>%
+        </div>
+
+        <div class="stat">
+            Generation:
+            <span class="generation">${animal.generation}</span>
+        </div>
+
+        <div class="stat">
+            Mood:
+            <span class="mood">${animal.mood}</span>
+        </div>
+
+        <br>
+
+        <button onclick="releaseAnimal(${animal.id})">
+            Release
+        </button>
+    `;
+
+    document
+        .getElementById("zoo")
+        .appendChild(card);
+
+    setupBehavior(card, animal);
+}
+
+
+/* ==============================
+   SPECIES BEHAVIOR
+============================== */
+
+function setupBehavior(card, animal) {
+
+    /* BUTTONS GET ANGRY */
+
+    if (animal.species === "button") {
+
+        const release =
+            card.querySelector("button");
+
+        release.addEventListener("click", event => {
+
+            event.stopPropagation();
+
+            card.querySelector(".mood")
+                .textContent = "FURIOUS";
+
+            log(
+                `Button #${animal.id} is angry about being clicked.`
+            );
+
+        });
+
+    }
+
+
+    /* PARAGRAPHS TALK */
+
+    if (animal.species === "p") {
+
+        const messages = [
+            "hello",
+            "I am a paragraph.",
+            "why am I alive?",
+            "this is uncomfortable.",
+            "I contain information.",
+            "KEDO.",
+            "please stop breeding us."
+        ];
+
+        setInterval(() => {
+
+            if (!document.body.contains(card))
+                return;
+
+            card.querySelector(".mood")
+                .textContent = random(messages);
+
+        }, 3000);
+
+    }
+
+
+    /* MARQUEES TRY TO ESCAPE */
+
+    if (animal.species === "marquee") {
+
+        setTimeout(() => {
+
+            if (!document.body.contains(card))
+                return;
+
+            escapeAnimal(card, animal);
+
+        }, 5000 + Math.random() * 10000);
+
+    }
+
+
+    /* TABLES THINK THEY ARE IN CHARGE */
+
+    if (animal.species === "table") {
+
+        setInterval(() => {
+
+            if (!document.body.contains(card))
+                return;
+
+            card.querySelector(".mood")
+                .textContent =
+                "ORGANIZING";
+
+        }, 4000);
+
+    }
+
+
+    /* SCRIPT IS JUST BAD */
+
+    if (animal.species === "script") {
+
+        log(
+            `⚠ WARNING: <script> #${animal.id} is alive.`
+        );
+
+        setInterval(() => {
+
+            if (!document.body.contains(card))
+                return;
+
+            card.querySelector(".mood")
+                .textContent =
+                random([
+                    "DANGEROUS",
+                    "DO NOT EXECUTE",
+                    "WHY",
+                    "undefined",
+                    "RUN"
+                ]);
+
+        }, 1000);
+
+    }
+
+}
+
+
+/* ==============================
+   MARQUEE ESCAPE
+============================== */
+
+function escapeAnimal(card, animal) {
+
+    card.classList.add("escaping");
+
+    log(
+        `🚨 <marquee> #${animal.id} has escaped.`
+    );
+
+    let x =
+        card.getBoundingClientRect().left;
+
+    let y =
+        card.getBoundingClientRect().top;
+
+    const interval =
+        setInterval(() => {
+
+            x += Math.random() * 30 - 15;
+            y += Math.random() * 30 - 15;
+
+            card.style.left = x + "px";
+            card.style.top = y + "px";
+
+        }, 100);
+
+    setTimeout(() => {
+
+        clearInterval(interval);
+
+        if (document.body.contains(card)) {
+
+            card.remove();
+
+            log(
+                `<marquee> #${animal.id} escaped into the internet.`
+            );
+
+            updatePopulation();
+        }
+
+    }, 10000);
+
+}
+
+
+/* ==============================
+   BREED
+============================== */
+
+function breedAnimals() {
+
+    const animals =
+        [...document.querySelectorAll(".animal")];
+
+    if (animals.length < 2) {
+
+        log(
+            "Not enough elements to breed."
+        );
+
+        return;
+    }
+
+    const parent1 = random(animals);
+    const parent2 = random(animals);
+
+    const species1 =
+        parent1.dataset.species;
+
+    const species2 =
+        parent2.dataset.species;
+
+
+    /*
+        Sometimes the child is normal.
+
+        Sometimes nature makes a mistake.
+    */
+
+    if (Math.random() < 0.7) {
+
+        const child =
+            Math.random() < 0.5
+                ? species1
+                : species2;
+
+        const generation =
+            Math.max(
+                getGeneration(parent1),
+                getGeneration(parent2)
+            ) + 1;
+
+        spawnAnimal(child, generation);
+
+        log(
+            `Breeding: <${species1}> × <${species2}> → <${child}>`
+        );
+
+    } else {
+
+        createMutant(species1, species2);
+
+    }
+
+}
+
+
+/* ==============================
+   MUTANTS
+============================== */
+
+function createMutant(parent1, parent2) {
+
+    idCounter++;
+
+    const names = [
+
+        parent1 + parent2,
+
+        parent2 + parent1,
+
+        "undefined",
+
+        "KEDO",
+
+        "element.exe",
+
+        "divbutt",
+
+        "paragraph.exe",
+
+        "WHAT"
+
+    ];
+
+    const mutantName = random(names);
+
+    const card =
+        document.createElement("div");
+
+    card.className =
+        "animal mutant";
+
+    card.dataset.id =
+        idCounter;
+
+    card.dataset.species =
+        mutantName;
+
+    card.innerHTML = `
+        <div class="emoji">🧬</div>
+
+        <div class="species">
+            &lt;${mutantName}&gt; #${idCounter}
+        </div>
+
+        <hr>
+
+        <div class="stat">
+            Parents:
+            &lt;${parent1}&gt; × &lt;${parent2}&gt;
+        </div>
+
+        <div class="stat">
+            Generation: UNKNOWN
+        </div>
+
+        <div class="stat">
+            Health: ???%
+        </div>
+
+        <div class="mood">
+            MUTANT
+        </div>
+
+        <br>
+
+        <button onclick="releaseAnimal(${idCounter})">
+            Destroy
+        </button>
+    `;
+
+    document
+        .getElementById("zoo")
+        .appendChild(card);
+
+    log(
+        `🧬 MUTATION: <${parent1}> × <${parent2}> → <${mutantName}>`
+    );
+
+    updatePopulation();
+}
+
+
+/* ==============================
+   GENERATION
+============================== */
+
+function getGeneration(card) {
+
+    const value =
+        card.querySelector(".generation");
+
+    if (!value)
+        return 1;
+
+    return parseInt(value.textContent) || 1;
+}
+
+
+/* ==============================
+   MUTATE
+============================== */
+
+function mutateAnimal() {
+
+    const animals =
+        [...document.querySelectorAll(".animal")];
+
+    if (!animals.length) {
+
+        log("Nothing exists to mutate.");
+
+        return;
+    }
+
+    const animal = random(animals);
+
+    const moods = [
+
+        "confused",
+
+        "angry",
+
+        "hungry",
+
+        "sentient",
+
+        "suspicious",
+
+        "EXTREMELY ROUND",
+
+        "KEDO",
+
+        "undefined",
+
+        "I HAVE SEEN THE DOM"
+
+    ];
+
+    animal.querySelector(".mood")
+        .textContent = random(moods);
+
+    animal.style.transform =
+        `rotate(${Math.random() * 12 - 6}deg)
+         scale(${0.9 + Math.random() * 0.25})`;
+
+    log(
+        `Mutation occurred in specimen #${animal.dataset.id}.`
+    );
+}
+
+
+/* ==============================
+   FEED
+============================== */
+
+function feedAnimals() {
+
+    const animals =
+        document.querySelectorAll(".animal");
+
+    animals.forEach(animal => {
+
+        const health =
+            animal.querySelector(".health");
+
+        if (!health)
+            return;
+
+        let value =
+            parseInt(health.textContent);
+
+        if (isNaN(value))
+            return;
+
+        value =
+            Math.min(100, value + 10);
+
+        health.textContent =
+            value;
+
+    });
+
+    log(
+        "All compatible specimens have been fed."
+    );
+}
+
+
+/* ==============================
+   TABLE ORGANIZATION
+============================== */
+
+function organizeTable() {
+
+    const table =
+        [...document.querySelectorAll(".animal")]
+        .find(
+            animal =>
+                animal.dataset.species === "table"
+        );
+
+    if (!table) {
+
+        log(
+            "No table exists to organize the zoo."
+        );
+
+        return;
+    }
+
+    document
+        .querySelectorAll(".animal")
+        .forEach(animal => {
+
+            animal.classList.add("organized");
+
+        });
+
+    log(
+        "📊 The table has organized everyone."
+    );
+
+}
+
+
+/* ==============================
+   RELEASE
+============================== */
+
+function releaseAnimal(id) {
+
+    const animal =
+        document.querySelector(
+            `.animal[data-id="${id}"]`
+        );
+
+    if (!animal)
+        return;
+
+    const speciesName =
+        animal.dataset.species;
+
+    animal.remove();
+
+    log(
+        `Specimen #${id} (<${speciesName}>) released.`
+    );
+
+    updatePopulation();
+}
+
+
+/* ==============================
+   RELEASE ALL
+============================== */
+
+function releaseAll() {
+
+    document
+        .querySelectorAll(".animal")
+        .forEach(animal => {
+
+            animal.remove();
+
+        });
+
+    log(
+        "THE ENTIRE ZOO HAS BEEN RELEASED."
+    );
+
+    updatePopulation();
+}
+
+
+/* ==============================
+   POPULATION
+============================== */
+
+function updatePopulation() {
+
+    document.getElementById("population")
+        .textContent =
+        document.querySelectorAll(".animal").length;
+
+}
+
+
+/* ==============================
+   AGING
+============================== */
+
+setInterval(() => {
+
+    const animals =
+        [...document.querySelectorAll(".animal")];
+
+    animals.forEach(animal => {
+
+        const ageElement =
+            animal.querySelector(".age");
+
+        if (!ageElement)
+            return;
+
+        let age =
+            parseInt(ageElement.textContent);
+
+        age++;
+
+        ageElement.textContent =
+            age;
+
+
+        /*
+         * Age 13 is special.
+         */
+
+        if (age === 13) {
+
+            log(
+                `Specimen #${animal.dataset.id} has reached age 13.`
+            );
+
+            animal.style.transform =
+                "rotate(13deg)";
+
+        }
+
+    });
+
+}, 1000);
+
+
+/* ==============================
+   INITIAL POPULATION
+============================== */
+
+for (let i = 0; i < 6; i++) {
+
+    spawnAnimal();
+
+}
+
+</script>
+
+</body>
+</html>
