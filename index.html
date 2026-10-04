@@ -21,6 +21,133 @@
         </p>
         <br>
     <hr>
+        <h2>clock</h2>
+        <section class="card clock-card">
+    <div class="clock" id="clock">
+        <div class="number n12">12</div>
+        <div class="number n3">3</div>
+        <div class="number n6">6</div>
+        <div class="number n9">9</div>
+
+        <div class="hand hour" id="hour"></div>
+        <div class="hand minute" id="minute"></div>
+        <div class="hand second" id="second"></div>
+
+        <div class="center"></div>
+    </div>
+
+    <p><strong>If you cannot read this clock, get off this site.</strong></p>
+</section>
+
+<style>
+.clock-card {
+    text-align: center;
+}
+
+.clock {
+    width: 220px;
+    height: 220px;
+    border: 8px solid #222;
+    border-radius: 50%;
+    position: relative;
+    margin: 20px auto;
+    background: white;
+}
+
+.number {
+    position: absolute;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.n12 {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.n3 {
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.n6 {
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.n9 {
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.hand {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    transform-origin: bottom center;
+    border-radius: 10px;
+}
+
+.hour {
+    width: 7px;
+    height: 55px;
+    background: #222;
+}
+
+.minute {
+    width: 5px;
+    height: 75px;
+    background: #444;
+}
+
+.second {
+    width: 2px;
+    height: 85px;
+    background: #d00;
+}
+
+.center {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #222;
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+</style>
+
+<script>
+function updateClock() {
+    const now = new Date();
+
+    const hours = now.getHours() % 12;
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+
+    const hourAngle = hours * 30 + minutes * 0.5;
+    const minuteAngle = minutes * 6 + seconds * 0.1;
+    const secondAngle = seconds * 6;
+
+    document.getElementById("hour").style.transform =
+        "translateX(-50%) rotate(" + hourAngle + "deg)";
+
+    document.getElementById("minute").style.transform =
+        "translateX(-50%) rotate(" + minuteAngle + "deg)";
+
+    document.getElementById("second").style.transform =
+        "translateX(-50%) rotate(" + secondAngle + "deg)";
+}
+
+updateClock();
+setInterval(updateClock, 1000);
+</script>
+        <hr>
         <h2>Games</h2>
 
 <p><a href="rps.html">🪨📄✂️ Cursed RPS</a></p>
