@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fake Computer Simulator</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;font-family:Consolas,monospace;overflow:hidden}
+body{background:#0b1220;color:#e8eef7}
+button,input{font:inherit}
+button{cursor:pointer;border:1px solid #667085;background:#202938;color:#f5f7fa;padding:7px 11px;border-radius:5px}
+button:hover{background:#2d394d}
+#desktop{position:absolute;inset:0;background:linear-gradient(135deg,#15243d,#263b5e 45%,#101827);overflow:hidden}
+#wallpaperText{position:absolute;right:24px;top:18px;opacity:.18;font-size:13px}
+#icons{position:absolute;top:18px;left:18px;display:grid;gap:14px;width:90px}
+.icon{width:80px;text-align:center;padding:7px;border-radius:6px;user-select:none}
+.icon:hover{background:#ffffff18}
+.icon .emoji{font-size:34px;display:block}
+.icon small{font-size:11px}
+.window{position:absolute;background:#111923;border:1px solid #718096;box-shadow:0 15px 40px #0008;border-radius:7px;overflow:hidden;min-width:330px;min-height:190px}
+.titlebar{height:32px;background:#263244;display:flex;align-items:center;justify-content:space-between;padding:0 8px;font-size:13px}
+.titlebar b{font-weight:600}
+.titlebar .close{padding:2px 8px;border:0;background:#9f2d3c}
+.content{padding:12px;overflow:auto;height:calc(100% - 32px)}
+#terminal{left:150px;top:90px;width:650px;height:410px;display:none}
+#files{left:210px;top:120px;width:570px;height:390px;display:none}
+#notepad{left:270px;top:150px;width:500px;height:340px;display:none}
+#settings{left:330px;top:180px;width:430px;height:300px;display:none}
+#levelWin{left:50%;top:50%;transform:translate(-50%,-50%);width:520px;max-width:90vw;display:none}
+#taskbar{position:absolute;bottom:0;left:0;right:0;height:43px;background:#0c1119e8;border-top:1px solid #485466;display:flex;align-items:center;gap:8px;padding:5px 8px}
+#start{font-weight:bold}
+#clock{margin-left:auto;opacity:.8}
+#terminalOut{height:315px;overflow:auto;white-space:pre-wrap;background:#080c11;padding:9px;border:1px solid #283342;border-radius:4px}
+#termForm{display:flex;margin-top:7px}
+#prompt{white-space:pre;padding:7px 4px}
+#termInput{flex:1;background:#080c11;color:#d8f3dc;border:1px solid #283342;padding:7px;border-radius:4px}
+.file{display:flex;align-items:center;gap:8px;padding:7px;border-bottom:1px solid #283342}
+.file:hover{background:#ffffff0a}
+.badge{font-size:10px;border:1px solid #65758b;padding:2px 5px;border-radius:10px;opacity:.8}
+#objective{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#101823d9;border:1px solid #526173;border-radius:7px;padding:7px 12px;font-size:12px;max-width:70vw;text-align:center}
+#toast{position:absolute;bottom:56px;left:50%;transform:translateX(-50%);background:#151d29;border:1px solid #77869a;border-radius:7px;padding:9px 13px;display:none;z-index:50}
+#glitch{position:absolute;inset:0;pointer-events:none;display:none;background:repeating-linear-gradient(0deg,#fff0 0 2px,#fff1 3px 4px);mix-blend-mode:screen}
+.weird{animation:weird .08s infinite alternate}
+@keyframes weird{from{filter:none}to{filter:hue-rotate(15deg) saturate(1.5)}}
+.levelrow{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.progress{height:8px;background:#273244;border-radius:8px;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:#b7d7ff}
+kbd{border:1px solid #667085;border-bottom-width:2px;border-radius:4px;padding:1px 5px;background:#161e2a}
+.warn{color:#ffd58a}.danger{color:#ff8f9c}.good{color:#9fe0b0}
+</style>
+</head>
+<body>
+<div id="desktop">
+  <div id="wallpaperText">FCS-OS 1.0 • totally normal computer</div>
+  <div id="objective">LEVEL 1 — Inspect the desktop.</div>
+
+  <div id="icons">
+    <div class="icon" id="computerIcon"><span class="emoji">🖥️</span><small>Computer</small></div>
+    <div class="icon" id="filesIcon"><span class="emoji">📁</span><small>Files</small></div>
+    <div class="icon" id="terminalIcon"><span class="emoji">▣</span><small>Terminal</small></div>
+    <div class="icon" id="notesIcon"><span class="emoji">📝</span><small>Notes</small></div>
+    <div class="icon" id="settingsIcon"><span class="emoji">⚙️</span><small>Settings</small></div>
+  </div>
+
+  <div class="window" id="terminal">
+    <div class="titlebar"><b>Terminal</b><button class="close" data-close="terminal">×</button></div>
+    <div class="content">
+      <div id="terminalOut"></div>
+      <form id="termForm">
+        <span id="prompt">C:\&gt;</span><input id="termInput" autocomplete="off" spellcheck="false">
+      </form>
+    </div>
+  </div>
+
+  <div class="window" id="files">
+    <div class="titlebar"><b>File Manager</b><button class="close" data-close="files">×</button></div>
+    <div class="content" id="fileContent"></div>
+  </div>
+
+  <div class="window" id="notepad">
+    <div class="titlebar"><b>Notepad</b><button class="close" data-close="notepad">×</button></div>
+    <div class="content"><pre id="noteText" style="white-space:pre-wrap"></pre></div>
+  </div>
+
+  <div class="window" id="settings">
+    <div class="titlebar"><b>Settings</b><button class="close" data-close="settings">×</button></div>
+    <div class="content">
+      <div class="levelrow"><b>System sound</b><button id="soundBtn">ON</button></div>
+      <div class="levelrow"><b>Debug mode</b><button id="debugBtn">OFF</button></div>
+      <div class="levelrow"><b>Wallpaper</b><button id="wallBtn">Normal</button></div>
+      <hr>
+      <p class="warn">Some settings may behave differently than expected.</p>
+      <button id="repairBtn">Run automatic repair</button>
+    </div>
+  </div>
+
+  <div class="window" id="levelWin">
+    <div class="titlebar"><b id="levelTitle">Level complete</b><button class="close" data-close="levelWin">×</button></div>
+    <div class="content">
+      <p id="levelMessage"></p>
+      <div class="progress"><i id="progressBar"></i></div>
+      <p id="progressText"></p>
+      <button id="nextBtn">Next level</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+  <div id="glitch"></div>
+
+  <div id="taskbar">
+    <button id="start">◉ START</button>
+    <button data-open="files">📁 Files</button>
+    <button data-open="terminal">▣ Terminal</button>
+    <button data-open="notepad">📝 Notes</button>
+    <button data-open="settings">⚙ Settings</button>
+    <span id="clock"></span>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* Fake Computer Simulator — deliberately sandboxed.
+   It never touches the real filesystem, runs shell commands, or accesses local files. */
+
+const state = {
+  level: 1,
+  cwd: "C:\\",
+  sound: true,
+  debug: false,
+  wallpaper: "Normal",
+  weird: 0,
+  completed: false,
+  processes: ["explorer.exe","terminal.exe","notepad.exe"],
+  files: {
+    "C:\\": [
+      {name:"README.TXT", type:"txt", text:"Welcome to FCS-OS.\nEverything is fine.\nProbably."},
+      {name:"USERS", type:"dir"},
+      {name:"SYSTEM", type:"dir"},
+      {name:"TEMP", type:"dir"},
+      {name:"notes.txt", type:"txt", text:"You are currently using a completely normal computer."}
+    ],
+    "C:\\USERS\\": [
+      {name:"PLAYER", type:"dir"},
+      {name:"GUEST", type:"dir"}
+    ],
+    "C:\\USERS\\PLAYER\\": [
+      {name:"todo.txt", type:"txt", text:"1. Inspect computer\n2. Do not trust the computer"},
+      {name:"secret.txt", type:"txt", text:"If you found this, the filesystem noticed you."}
+    ],
+    "C:\\USERS\\GUEST\\": [
+      {name:"hello.txt", type:"txt", text:"hello :)"}
+    ],
+    "C:\\SYSTEM\\": [
+      {name:"config.sys", type:"txt", text:"BOOT=FCS\nSAFE=TRUE\nWEIRD=FALSE"},
+      {name:"kernel.log", type:"log", text:"[boot] normal\n[boot] normal\n[boot] normal"}
+    ],
+    "C:\\TEMP\\": [
+      {name:"cache.tmp", type:"txt", text:"temporary data"}
+    ]
+  }
+};
+
+const levels = [
+  ["Inspect the desktop.","Open the Computer icon.","Computer"],
+  ["Files","Open File Manager.","Files"],
+  ["Opening files","Open README.TXT.","Read README.TXT"],
+  ["Moving files","Move nothing. Instead, notice the filesystem.","Notice"],
+  ["Deleting files","Try deleting TEMP/cache.tmp using the terminal.","Delete cache.tmp"],
+  ["Terminal","Open Terminal.","Terminal"],
+  ["Commands","Run HELP.","help"],
+  ["Hidden files","Run DIR /A.","dir /a"],
+  ["Permissions","Run WHOAMI.","whoami"],
+  ["Processes","Run TASKLIST.","tasklist"],
+  ["Memory","Run MEM.","mem"],
+  ["Configuration","Open SYSTEM/config.sys.","config"],
+  ["Logs","TYPE SYSTEM/kernel.log.","log"],
+  ["Corrupted files","Open TEMP/cache.tmp.","corruption"],
+  ["Fake errors","Run REPAIR.","repair"],
+  ["Environment variables","Run SET.","set"],
+  ["Networking","Run NETSTAT.","netstat"],
+  ["Multiple users","Run USERS.","users"],
+  ["System settings","Toggle Debug mode.","debug"],
+  ["Scripts","Run RUN startup.fcs.","script"],
+  ["Automation","Run AUTO.","auto"],
+  ["Debugging","Run DEBUG.","debugcmd"],
+  ["Something goes very wrong","Run REBOOT.","reboot"],
+  ["Computer starts talking","Open Notes.","talk"],
+  ["Filesystem makes no sense","Run DIR C:\\ /S.","nonsense"],
+  ["WHAT THE FUCK IS THIS COMPUTER","Do literally anything that makes the computer admit it is weird.","final"]
+];
+
+const $ = id => document.getElementById(id);
+const windows = ["terminal","files","notepad","settings","levelWin"];
+
+function show(id){
+  $(id).style.display = "block";
+  if(id==="terminal") setTimeout(()=>$("termInput").focus(),20);
+}
+function hide(id){ $(id).style.display="none"; }
+function toast(msg){
+  $("toast").textContent=msg;
+  $("toast").style.display="block";
+  clearTimeout(toast.t);
+  toast.t=setTimeout(()=>$("toast").style.display="none",2200);
+}
+function print(msg, cls=""){
+  const line=document.createElement("div");
+  if(cls) line.className=cls;
+  line.textContent=msg;
+  $("terminalOut").appendChild(line);
+  $("terminalOut").scrollTop=$("terminalOut").scrollHeight;
+}
+function normalize(p){
+  p=p.replaceAll("/","\\");
+  if(!p.endsWith("\\")) p+="\\";
+  return p.toUpperCase();
+}
+function listPath(path=state.cwd){
+  return state.files[normalize(path)] || [];
+}
+function prompt(){
+  $("prompt").textContent=state.cwd + ">";
+}
+function renderFiles(){
+  const box=$("fileContent");
+  box.innerHTML="";
+  const path=state.cwd;
+  const items=listPath(path);
+  const h=document.createElement("div");
+  h.innerHTML="<b>"+path+"</b><hr>";
+  box.appendChild(h);
+  items.forEach((f,i)=>{
+    const row=document.createElement("div");
+    row.className="file";
+    const icon=f.type==="dir"?"📁":"📄";
+    row.innerHTML="<span>"+icon+"</span><b>"+f.name+"</b><span class='badge'>"+f.type+"</span>";
+    if(f.type==="txt"||f.type==="log"){
+      const b=document.createElement("button"); b.textContent="Open";
+      b.addEventListener("click",()=>openFile(f));
+      row.appendChild(b);
+    }
+    if(f.type==="dir"){
+      const b=document.createElement("button"); b.textContent="Enter";
+      b.addEventListener("click",()=>{
+        state.cwd=normalize(path+f.name+"\\");
+        prompt(); renderFiles();
+      });
+      row.appendChild(b);
+    }
+    box.appendChild(row);
+  });
+}
+function openFile(f){
+  show("notepad");
+  $("noteText").textContent=f.text || "[empty]";
+  weirdIfNeeded();
+  if(f.name.toLowerCase()==="config.sys" && state.level>=12) complete("You found the system configuration.");
+  if(f.name.toLowerCase()==="kernel.log" && state.level>=13) complete("The logs are… surprisingly honest.");
+  if(f.name.toLowerCase()==="cache.tmp" && state.level>=14){
+    $("noteText").textContent="ERROR: file contents changed while being read.\n\nIt now says:\nSTOP READING ME.";
+    complete("The file was not supposed to contain that.");
+  }
+  if(state.level>=24 && f.name==="notes.txt") complete("The Notes app has begun talking back.");
+}
+function command(raw){
+  const input=raw.trim();
+  if(!input)return;
+  print(state.cwd+">"+input);
+  const [cmd,...rest]=input.split(/\s+/);
+  const c=cmd.toLowerCase();
+  const args=rest.join(" ");
+  switch(c){
+    case "help":
+      print("COMMANDS: DIR CD TYPE OPEN DEL MKDIR CLS VER WHOAMI TASKLIST MEM SET NETSTAT USERS REPAIR RUN AUTO DEBUG REBOOT");
+      if(state.level>=7) complete("You discovered the command interface.");
+      break;
+    case "dir":
+      if(args.toLowerCase().includes("/a")){
+        print("Volume FCS\nDirectory of "+state.cwd);
+        print("  .\n  ..\n  .computer_seen_you");
+        print(listPath().map(x=>x.name).join("\n"));
+        if(state.level>=8) complete("Hidden things are still things.");
+      } else if(args.toUpperCase().includes("C:\\") && args.toUpperCase().includes("/S")){
+        print("Searching C:\\ ...");
+        print("C:\\SYSTEM\\config.sys");
+        print("C:\\SYSTEM\\kernel.log");
+        print("C:\\USERS\\PLAYER\\secret.txt");
+        print("C:\\TEMP\\cache.tmp");
+        print("C:\\???\\???");
+        if(state.level>=25) complete("The filesystem contains a directory that does not exist.");
+      } else {
+        print(listPath().map(x=>x.name).join("\n") || "(empty)");
+        if(state.level===2) complete("The filesystem exists. That's a start.");
+      }
+      break;
+    case "cd":
+      if(!args){print(state.cwd);break}
+      if(args===".." || args==="\\"){state.cwd="C:\\";prompt();renderFiles();break}
+      const target=normalize(state.cwd+args);
+      if(state.files[target]){state.cwd=target;prompt();renderFiles();print("Changed directory.");}
+      else print("The system cannot find the path specified.","warn");
+      break;
+    case "type":
+    case "open":
+      const needle=args.replace(/^["']|["']$/g,"").toLowerCase();
+      let found=null;
+      for(const key of Object.keys(state.files)){
+        for(const f of state.files[key]){
+          if(f.name.toLowerCase()===needle || (key+f.name).toLowerCase().endsWith(needle)) found=f;
+        }
+      }
+      if(found) openFile(found); else print("File not found.","warn");
+      break;
+    case "del":
+      const n=args.toLowerCase();
+      let deleted=false;
+      for(const key of Object.keys(state.files)){
+        const arr=state.files[key];
+        const idx=arr.findIndex(f=>f.name.toLowerCase()===n);
+        if(idx>=0){arr.splice(idx,1);deleted=true}
+      }
+      print(deleted?"File deleted.":"File not found.");
+      if(deleted && state.level===5) complete("You successfully deleted a file. Nothing exploded.");
+      break;
+    case "whoami":
+      print("PLAYER");
+      print("permission level: suspiciously sufficient");
+      if(state.level>=9) complete("Identity confirmed.");
+      break;
+    case "tasklist":
+      print(state.processes.join("\n"));
+      if(state.level>=10) complete("You found the processes.");
+      break;
+    case "mem":
+      print("FCS-OS MEMORY");
+      print("Total: 64 MiB");
+      print("Used: "+(Math.floor(Math.random()*20)+18)+" MiB");
+      print("Free: "+(Math.floor(Math.random()*20)+26)+" MiB");
+      if(state.level>=11) complete("Memory inspected.");
+      break;
+    case "set":
+      print("PATH=C:\\SYSTEM;C:\\UTIL");
+      print("USER=PLAYER");
+      print("FCS_WEIRD="+state.weird);
+      if(state.level>=16) complete("Environment variables located.");
+      break;
+    case "netstat":
+      print("Active Connections");
+      print("127.0.0.1:80   LISTENING");
+      print("10.0.0.13:13   ESTABLISHED");
+      print("???             ESTABLISHED");
+      if(state.level>=17) complete("Networking inspected. The third connection is concerning.");
+      break;
+    case "users":
+      print("PLAYER");
+      print("GUEST");
+      print("SYSTEM");
+      print("SOMEONE");
+      if(state.level>=18) complete("There are more users than expected.");
+      break;
+    case "repair":
+      print("Checking system...");
+      print("0 errors found.");
+      print("1 error found.");
+      print("Repairing error...");
+      print("ERROR: repair tool repaired itself.");
+      state.weird++;
+      weirdIfNeeded();
+      if(state.level>=15) complete("The repair tool has become suspicious.");
+      break;
+    case "run":
+      print("Launching "+args+" ...");
+      print("Script completed successfully.");
+      if(state.level>=20) complete("A script ran in the fake machine.");
+      break;
+    case "auto":
+      print("Automation started.");
+      print("Automation finished.");
+      print("Automation has started itself again.");
+      state.weird++;
+      if(state.level>=21) complete("Automation is now doing automation.");
+      break;
+    case "debug":
+      state.debug=!state.debug;
+      $("debugBtn").textContent=state.debug?"ON":"OFF";
+      print("DEBUG="+(state.debug?"ON":"OFF"));
+      if(state.level>=22) complete("Debugging mode enabled.");
+      break;
+    case "reboot":
+      print("Rebooting...");
+      state.weird++;
+      setTimeout(()=>{
+        print("BIOS: hello.");
+        print("FCS-OS: welcome back.");
+        print("You did not actually reboot.");
+        weirdIfNeeded();
+      },400);
+      if(state.level>=23) complete("You attempted to reboot the fake computer.");
+      break;
+    case "cls":
+      $("terminalOut").innerHTML="";break;
+    case "ver":
+      print("FCS-OS version 1.0.26");
+      break;
+    case "mkdir":
+      print("Directory created.");
+      break;
+    default:
+      print("'"+cmd+"' is not recognized as an internal or external command.","warn");
+      if(state.level>=26){
+        state.weird+=2; weirdIfNeeded();
+        complete("The computer finally admitted that none of this is normal.");
+      }
+  }
+}
+function weirdIfNeeded(){
+  if(state.weird>=2){
+    $("wallpaperText").textContent="FCS-OS • are you still there?";
+  }
+  if(state.weird>=4){
+    $("desktop").classList.add("weird");
+    $("glitch").style.display="block";
+    setTimeout(()=>$("glitch").style.display="none",180);
+  }
+  if(state.weird>=6){
+    $("wallpaperText").textContent="FCS-OS • STOP CHECKING THE FILES";
+  }
+}
+function objective(){
+  const l=levels[state.level-1];
+  $("objective").textContent="LEVEL "+state.level+" — "+l[0]+": "+l[1];
+}
+function complete(msg){
+  if(state.completed)return;
+  state.completed=true;
+  $("levelTitle").textContent="LEVEL "+state.level+" COMPLETE";
+  $("levelMessage").textContent=msg;
+  $("progressText").textContent="Progress: "+state.level+" / 26";
+  $("progressBar").style.width=(state.level/26*100)+"%";
+  $("nextBtn").textContent=state.level===26?"Restart the computer":"Next level";
+  show("levelWin");
+}
+function nextLevel(){
+  if(state.level===26){
+    state.level=1; state.weird=0; state.completed=false; state.cwd="C:\\";
+    $("desktop").classList.remove("weird");
+    $("wallpaperText").textContent="FCS-OS 1.0 • totally normal computer";
+    $("glitch").style.display="none";
+  }else{
+    state.level++;
+    state.completed=false;
+  }
+  hide("levelWin");
+  objective();
+  prompt();
+  renderFiles();
+  toast("Level "+state.level+" loaded.");
+}
+function openComputer(){
+  show("files");
+  state.cwd="C:\\";
+  prompt(); renderFiles();
+  if(state.level===1) complete("You opened the computer. Congratulations on discovering a computer.");
+}
+function updateClock(){
+  const d=new Date();
+  $("clock").textContent=d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"});
+}
+$("termForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  command($("termInput").value);
+  $("termInput").value="";
+});
+document.querySelectorAll("[data-open]").forEach(b=>b.addEventListener("click",()=>show(b.dataset.open)));
+document.querySelectorAll("[data-close]").forEach(b=>b.addEventListener("click",()=>hide(b.dataset.close)));
+$("computerIcon").addEventListener("dblclick",openComputer);
+$("filesIcon").addEventListener("dblclick",()=>{show("files");renderFiles()});
+$("terminalIcon").addEventListener("dblclick",()=>show("terminal"));
+$("notesIcon").addEventListener("dblclick",()=>{show("notepad");$("noteText").textContent="Nothing suspicious here.\n\nDefinitely not.\n\n(There is a suspicious thing.)"});
+$("settingsIcon").addEventListener("dblclick",()=>show("settings"));
+$("nextBtn").addEventListener("click",nextLevel);
+$("start").addEventListener("click",()=>toast("START menu unavailable. This is a fake computer."));
+$("soundBtn").addEventListener("click",()=>{
+  state.sound=!state.sound;$("soundBtn").textContent=state.sound?"ON":"OFF";
+  toast("System sound "+(state.sound?"enabled":"disabled")+".");
+});
+$("debugBtn").addEventListener("click",()=>{
+  state.debug=!state.debug;$("debugBtn").textContent=state.debug?"ON":"OFF";
+  if(state.level>=19) complete("You changed a system setting.");
+});
+$("wallBtn").addEventListener("click",()=>{
+  state.wallpaper=state.wallpaper==="Normal"?"Cursed":"Normal";
+  $("wallBtn").textContent=state.wallpaper;
+  $("desktop").style.background=state.wallpaper==="Cursed"?"linear-gradient(135deg,#291327,#142d2c,#281e11)":"linear-gradient(135deg,#15243d,#263b5e 45%,#101827)";
+  if(state.wallpaper==="Cursed")state.weird++;
+  weirdIfNeeded();
+});
+$("repairBtn").addEventListener("click",()=>command("repair"));
+$("termInput").addEventListener("keydown",e=>{
+  if(e.key==="ArrowUp"){ e.preventDefault(); $("termInput").value="help"; }
+});
+setInterval(updateClock,1000);
+updateClock();
+objective();
+prompt();
+renderFiles();
+print("FCS-OS Terminal [sandbox]");
+print("Type HELP for a list of commands.");
+print("This machine is fake. Your real computer is safe.");
+</script>
+</body>
+</html>
+
+
+path = Path("/mnt/data/fake_computer_simulator.html")
+path.write_text(html, encoding="utf-8")
+print(f"Created {path} ({len(html):,} bytes)")
