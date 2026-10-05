@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C Documentation</title>
+<style>
+body{font-family:system-ui,sans-serif;line-height:1.6;max-width:1100px;margin:auto;padding:2rem;background:#111;color:#eee}
+nav{position:sticky;top:0;background:#181818;padding:1rem;border-radius:12px}
+a{color:#7dd3fc}code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+code{background:#222;padding:.15em .35em;border-radius:5px}pre{background:#181818;padding:1rem;overflow:auto;border-radius:10px}
+table{border-collapse:collapse;width:100%;margin:1rem 0}th,td{border:1px solid #444;padding:.55rem;text-align:left;vertical-align:top}th{background:#222}
+.note{border-left:4px solid #7dd3fc;padding:.7rem 1rem;background:#181818}
+</style>
+</head>
+<body>
+<h1>C Programming Documentation</h1>
+<p>A practical reference covering core C syntax, types, control flow, functions, arrays, pointers, strings, structures, memory, preprocessing, files, and the standard library.</p>
+
+<nav>
+<a href="#basics">Basics</a> · <a href="#types">Types</a> · <a href="#operators">Operators</a> ·
+<a href="#control">Control Flow</a> · <a href="#functions">Functions</a> · <a href="#arrays">Arrays</a> ·
+<a href="#pointers">Pointers</a> · <a href="#strings">Strings</a> · <a href="#structs">Structs</a> ·
+<a href="#memory">Memory</a> · <a href="#preprocessor">Preprocessor</a> · <a href="#files">Files</a> ·
+<a href="#stdlib">Standard Library</a>
+</nav>
+
+<h2 id="basics">1. Basics</h2>
+<p>C programs consist of declarations, definitions, expressions, statements, and preprocessing directives.</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int main(void) {
+    printf("Hello, world!\n");
+    return 0;
+}</code></pre>
+<h3>Comments</h3>
+<pre><code>// Single-line comment
+
+/*
+   Multi-line comment
+*/</code></pre>
+<h3>Variables</h3>
+<pre><code>int age = 13;
+char letter = 'A';
+double pi = 3.14159;
+const int days = 7;</code></pre>
+
+<h2 id="types">2. Types</h2>
+<table>
+<tr><th>Type</th><th>Purpose</th></tr>
+<tr><td><code>char</code></td><td>Character-sized integer type.</td></tr>
+<tr><td><code>short</code></td><td>Small integer.</td></tr>
+<tr><td><code>int</code></td><td>General-purpose integer.</td></tr>
+<tr><td><code>long</code></td><td>Larger integer; size depends on implementation.</td></tr>
+<tr><td><code>long long</code></td><td>At least 64 bits.</td></tr>
+<tr><td><code>float</code></td><td>Single-precision floating point.</td></tr>
+<tr><td><code>double</code></td><td>Double-precision floating point.</td></tr>
+<tr><td><code>long double</code></td><td>Extended floating point.</td></tr>
+</table>
+<pre><code>unsigned int count = 100;
+const double pi = 3.141592653589793;
+printf("%zu\n", sizeof(int));</code></pre>
+
+<h3>Boolean</h3>
+<pre><code>#include &lt;stdbool.h&gt;
+
+bool ready = true;</code></pre>
+<h3>typedef</h3>
+<pre><code>typedef unsigned long ulong;
+ulong value = 100;</code></pre>
+<h3>enum</h3>
+<pre><code>enum Color { RED, GREEN, BLUE };
+enum Color c = GREEN;</code></pre>
+
+<h2 id="operators">3. Operators</h2>
+<table>
+<tr><th>Category</th><th>Operators</th></tr>
+<tr><td>Arithmetic</td><td><code>+ - * / %</code></td></tr>
+<tr><td>Increment/decrement</td><td><code>++ --</code></td></tr>
+<tr><td>Comparison</td><td><code>== != &lt; &gt; &lt;= &gt;=</code></td></tr>
+<tr><td>Logical</td><td><code>&amp;&amp; || !</code></td></tr>
+<tr><td>Bitwise</td><td><code>&amp; | ^ ~ &lt;&lt; &gt;&gt;</code></td></tr>
+<tr><td>Assignment</td><td><code>= += -= *= /= %= &amp;= |= ^= &lt;&lt;= &gt;&gt;=</code></td></tr>
+<tr><td>Conditional</td><td><code>? :</code></td></tr>
+<tr><td>Address/dereference</td><td><code>&amp; *</code></td></tr>
+<tr><td>Member access</td><td><code>. -&gt;</code></td></tr>
+</table>
+<pre><code>int a = 5 / 2;       // 2
+double b = 5.0 / 2;  // 2.5</code></pre>
+
+<h2 id="control">4. Control Flow</h2>
+<h3>if / else</h3>
+<pre><code>if (score &gt;= 90) {
+    puts("A");
+} else if (score &gt;= 80) {
+    puts("B");
+} else {
+    puts("Keep practicing");
+}</code></pre>
+<h3>switch</h3>
+<pre><code>switch (choice) {
+case 1:
+    puts("One");
+    break;
+case 2:
+    puts("Two");
+    break;
+default:
+    puts("Other");
+    break;
+}</code></pre>
+<h3>Loops</h3>
+<pre><code>for (int i = 0; i &lt; 10; ++i)
+    printf("%d\n", i);
+
+int i = 0;
+while (i &lt; 10) {
+    ++i;
+}
+
+do {
+    /* runs at least once */
+} while (condition);</code></pre>
+<h3>break / continue</h3>
+<pre><code>for (;;) {
+    if (done) break;
+    if (skip) continue;
+}</code></pre>
+
+<h2 id="functions">5. Functions</h2>
+<pre><code>int add(int a, int b) {
+    return a + b;
+}
+
+int result = add(2, 3);</code></pre>
+<h3>Prototypes</h3>
+<pre><code>int add(int a, int b);
+
+int main(void) {
+    return add(2, 3);
+}</code></pre>
+<h3>void</h3>
+<pre><code>void greet(void) {
+    puts("Hello");
+}</code></pre>
+<p>C passes arguments by value. To modify an object in a function, pass its address.</p>
+<pre><code>void set_value(int *p) {
+    *p = 42;
+}
+
+int x = 0;
+set_value(&amp;x);</code></pre>
+
+<h2 id="arrays">6. Arrays</h2>
+<pre><code>int numbers[5] = {10, 20, 30, 40, 50};
+
+printf("%d\n", numbers[0]);</code></pre>
+<p>Array indexing begins at zero. Access outside an array's bounds is undefined behavior.</p>
+<h3>Multidimensional arrays</h3>
+<pre><code>int matrix[2][3] = {
+    {1, 2, 3},
+    {4, 5, 6}
+};</code></pre>
+<h3>Array length</h3>
+<pre><code>size_t count = sizeof numbers / sizeof numbers[0];</code></pre>
+
+<h2 id="pointers">7. Pointers</h2>
+<p>A pointer stores the address of an object or function.</p>
+<pre><code>int x = 10;
+int *p = &amp;x;
+
+printf("%d\n", *p);
+*p = 20;</code></pre>
+<h3>NULL</h3>
+<pre><code>int *p = NULL;
+
+if (p != NULL)
+    printf("%d\n", *p);</code></pre>
+<h3>Pointer arithmetic</h3>
+<pre><code>int values[3] = {1, 2, 3};
+int *p = values;
+
+printf("%d\n", *(p + 1));</code></pre>
+<h3>Pointer to pointer</h3>
+<pre><code>int x = 5;
+int *p = &amp;x;
+int **pp = &amp;p;</code></pre>
+<h3>const pointers</h3>
+<pre><code>const int *p;        // pointer to const int
+int *const p2 = &amp;x;  // const pointer to int
+const int *const p3 = &amp;x;</code></pre>
+
+<h2 id="strings">8. Strings and Characters</h2>
+<p>C strings are character arrays terminated by <code>'\0'</code>.</p>
+<pre><code>char name[] = "Lucy";
+printf("%s\n", name);</code></pre>
+<table>
+<tr><th>Function</th><th>Purpose</th></tr>
+<tr><td><code>strlen</code></td><td>Gets string length.</td></tr>
+<tr><td><code>strcmp</code></td><td>Compares strings.</td></tr>
+<tr><td><code>strcpy</code></td><td>Copies a string to a sufficiently large destination.</td></tr>
+<tr><td><code>strcat</code></td><td>Appends a string to a sufficiently large destination.</td></tr>
+<tr><td><code>strchr</code></td><td>Finds a character.</td></tr>
+<tr><td><code>strstr</code></td><td>Finds a substring.</td></tr>
+</table>
+<pre><code>#include &lt;ctype.h&gt;
+
+if (isdigit(c)) { }
+if (isalpha(c)) { }
+if (isspace(c)) { }
+if (toupper(c) == 'A') { }</code></pre>
+
+<h2 id="structs">9. Structs, Unions, and Enums</h2>
+<pre><code>struct Person {
+    char name[32];
+    int age;
+};
+
+struct Person p = {"Lucy", 13};
+printf("%s\n", p.name);</code></pre>
+<h3>Struct pointers</h3>
+<pre><code>struct Person *ptr = &amp;p;
+printf("%d\n", ptr-&gt;age);</code></pre>
+<h3>Unions</h3>
+<pre><code>union Value {
+    int i;
+    float f;
+    char c;
+};
+
+union Value v;
+v.i = 42;</code></pre>
+<p>Union members share storage, so reading a member other than the one whose value is intended requires care and depends on the language rules and implementation.</p>
+
+<h2 id="memory">10. Dynamic Memory</h2>
+<pre><code>#include &lt;stdlib.h&gt;
+
+int *p = malloc(10 * sizeof *p);
+
+if (p != NULL) {
+    p[0] = 123;
+    free(p);
+}</code></pre>
+<h3>calloc</h3>
+<pre><code>int *p = calloc(10, sizeof *p);</code></pre>
+<h3>realloc</h3>
+<pre><code>int *tmp = realloc(p, 20 * sizeof *p);
+
+if (tmp != NULL)
+    p = tmp;</code></pre>
+<div class="note"><strong>Memory rule:</strong> Successful dynamic allocations should eventually be released with <code>free</code>, unless ownership is deliberately transferred.</div>
+
+<h2 id="preprocessor">11. Preprocessor</h2>
+<pre><code>#include &lt;stdio.h&gt;
+#include "my_header.h"
+
+#define BUFFER_SIZE 1024
+#define SQUARE(x) ((x) * (x))
+
+#ifdef DEBUG
+puts("Debug build");
+#endif
+
+#if defined(_WIN32)
+puts("Windows");
+#elif defined(__linux__)
+puts("Linux");
+#endif</code></pre>
+<h3>Header guards</h3>
+<pre><code>#ifndef MY_HEADER_H
+#define MY_HEADER_H
+
+/* declarations */
+
+#endif</code></pre>
+
+<h2 id="files">12. File I/O</h2>
+<pre><code>#include &lt;stdio.h&gt;
+
+FILE *file = fopen("data.txt", "r");
+
+if (file != NULL) {
+    char buffer[128];
+
+    while (fgets(buffer, sizeof buffer, file))
+        fputs(buffer, stdout);
+
+    fclose(file);
+}</code></pre>
+<table>
+<tr><th>Function</th><th>Purpose</th></tr>
+<tr><td><code>fopen</code></td><td>Opens a file.</td></tr>
+<tr><td><code>fclose</code></td><td>Closes a file.</td></tr>
+<tr><td><code>fread</code></td><td>Reads binary data.</td></tr>
+<tr><td><code>fwrite</code></td><td>Writes binary data.</td></tr>
+<tr><td><code>fgets</code></td><td>Reads a line or string.</td></tr>
+<tr><td><code>fputs</code></td><td>Writes a string.</td></tr>
+<tr><td><code>fprintf</code></td><td>Formatted output to a stream.</td></tr>
+<tr><td><code>fscanf</code></td><td>Formatted input from a stream.</td></tr>
+<tr><td><code>fseek</code></td><td>Moves the stream position.</td></tr>
+<tr><td><code>ftell</code></td><td>Reports the stream position.</td></tr>
+</table>
+<p>Common modes: <code>"r"</code> read, <code>"w"</code> write/truncate, <code>"a"</code> append, and <code>"+"</code> for update. Add <code>"b"</code> for binary mode where applicable.</p>
+
+<h2 id="stdlib">13. Standard Library Quick Reference</h2>
+<table>
+<tr><th>Header</th><th>Examples</th></tr>
+<tr><td><code>&lt;stdio.h&gt;</code></td><td><code>printf</code>, <code>scanf</code>, <code>fopen</code>, <code>fread</code>, <code>fwrite</code>, <code>puts</code></td></tr>
+<tr><td><code>&lt;stdlib.h&gt;</code></td><td><code>malloc</code>, <code>calloc</code>, <code>realloc</code>, <code>free</code>, <code>strtol</code>, <code>qsort</code></td></tr>
+<tr><td><code>&lt;string.h&gt;</code></td><td><code>strlen</code>, <code>strcmp</code>, <code>memcpy</code>, <code>memmove</code>, <code>memset</code></td></tr>
+<tr><td><code>&lt;ctype.h&gt;</code></td><td><code>isalpha</code>, <code>isdigit</code>, <code>isspace</code>, <code>toupper</code></td></tr>
+<tr><td><code>&lt;math.h&gt;</code></td><td><code>sqrt</code>, <code>pow</code>, <code>sin</code>, <code>cos</code>, <code>fabs</code></td></tr>
+<tr><td><code>&lt;time.h&gt;</code></td><td><code>time</code>, <code>clock</code>, <code>localtime</code>, <code>strftime</code></td></tr>
+<tr><td><code>&lt;stdint.h&gt;</code></td><td><code>uint32_t</code>, <code>int64_t</code>, and other fixed-width integer types.</td></tr>
+<tr><td><code>&lt;stdbool.h&gt;</code></td><td><code>bool</code>, <code>true</code>, <code>false</code>.</td></tr>
+<tr><td><code>&lt;stddef.h&gt;</code></td><td><code>size_t</code>, <code>ptrdiff_t</code>, <code>NULL</code>.</td></tr>
+<tr><td><code>&lt;limits.h&gt;</code></td><td>Integer limits such as <code>INT_MAX</code>.</td></tr>
+<tr><td><code>&lt;float.h&gt;</code></td><td>Floating-point limits and characteristics.</td></tr>
+</table>
+
+<h2>14. Compilation</h2>
+<pre><code>gcc main.c -o program
+gcc -std=c17 main.c -o program
+gcc main.c io.c memory.c -o program</code></pre>
+<p>The toolchain commonly performs preprocessing, compilation, assembly, and linking.</p>
+
+<h2>15. C Standards</h2>
+<ul>
+<li><strong>C89/C90:</strong> early standardized C.</li>
+<li><strong>C99:</strong> added features such as <code>//</code> comments, declarations in <code>for</code> loops, and <code>&lt;stdbool.h&gt;</code>.</li>
+<li><strong>C11:</strong> added features including <code>_Static_assert</code>, atomics, and threads support.</li>
+<li><strong>C17:</strong> maintenance revision of C11.</li>
+<li><strong>C23:</strong> the current ISO C standard with additional language and library features.</li>
+</ul>
+
+<h2>16. Important Rules</h2>
+<ul>
+<li>Arrays are zero-indexed.</li>
+<li>C strings end with <code>'\0'</code>.</li>
+<li><code>&amp;x</code> gets an address; <code>*p</code> dereferences a pointer.</li>
+<li><code>sizeof</code> reports a size in bytes.</li>
+<li>C function arguments are passed by value.</li>
+<li>Dynamic memory from <code>malloc</code>, <code>calloc</code>, or <code>realloc</code> is released with <code>free</code>.</li>
+<li>Accessing an object outside its valid bounds is undefined behavior.</li>
+<li>Using an object outside its lifetime is invalid.</li>
+<li>Do not return a pointer to a local automatic object whose lifetime has ended.</li>
+<li>Compiler warnings are extremely useful for finding mistakes early.</li>
+</ul>
+
+<hr>
+<p><small>C Documentation — compact educational reference.</small></p>
+</body>
+</html>
