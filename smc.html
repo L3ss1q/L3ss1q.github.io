@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Storage Media Clicker</title>
+<style>
+    :root {
+        --bg: #101010;
+        --panel: #1b1b1b;
+        --panel2: #242424;
+        --text: #f1f1f1;
+        --muted: #aaa;
+        --border: #555;
+        --accent: #7dd3fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, sans-serif;
+    }
+
+    header {
+        padding: 22px;
+        text-align: center;
+        background: #181818;
+        border-bottom: 2px solid var(--border);
+    }
+
+    header h1 { margin: 0 0 6px; }
+    header p { margin: 0; color: var(--muted); }
+
+    #currencies {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 0 16px;
+    }
+
+    .currency {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .currency .icon { font-size: 38px; }
+    .currency .name { color: var(--muted); }
+    .currency .amount {
+        font-size: 24px;
+        font-weight: bold;
+        margin-top: 5px;
+    }
+
+    .game {
+        max-width: 1000px;
+        margin: auto;
+        padding: 0 16px 40px;
+        text-align: center;
+    }
+
+    #mediaButton {
+        width: 240px;
+        height: 240px;
+        margin: 15px auto 10px;
+        display: block;
+        border: 0;
+        border-radius: 18px;
+        background: transparent;
+        cursor: pointer;
+        transition: transform .07s;
+    }
+
+    #mediaButton:active {
+        transform: translateY(8px) scale(.97);
+    }
+
+    #mediaIcon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        font-size: 150px;
+        filter: drop-shadow(0 10px 5px #000);
+    }
+
+    #clickInfo {
+        color: var(--muted);
+        margin-bottom: 20px;
+    }
+
+    #menus {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+    }
+
+    .menuButton {
+        padding: 11px 18px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--text);
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .menuButton.active {
+        background: var(--panel2);
+        border-color: var(--accent);
+    }
+
+    .menuButton.locked {
+        opacity: .45;
+        cursor: not-allowed;
+    }
+
+    .panel {
+        max-width: 800px;
+        margin: 0 auto;
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .panel h2 { margin-top: 0; }
+
+    .upgrade {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+        text-align: left;
+        padding: 15px;
+        margin: 10px 0;
+        background: #151515;
+        border: 1px solid #444;
+        border-radius: 9px;
+    }
+
+    .upgrade h3 {
+        margin: 0 0 4px;
+    }
+
+    .upgrade p {
+        margin: 0;
+        color: var(--muted);
+    }
+
+    .buy {
+        min-width: 130px;
+        padding: 10px 14px;
+        border: 1px solid #777;
+        border-radius: 7px;
+        background: #292929;
+        color: white;
+        cursor: pointer;
+    }
+
+    .buy:hover:not(:disabled) { background: #383838; }
+    .buy:disabled { opacity: .4; cursor: not-allowed; }
+
+    .conversion {
+        max-width: 800px;
+        margin: 20px auto;
+        background: #181818;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+    }
+
+    .conversion button {
+        padding: 12px 22px;
+        border: 1px solid #777;
+        border-radius: 8px;
+        background: #292929;
+        color: white;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    .conversion button:disabled {
+        opacity: .4;
+        cursor: not-allowed;
+    }
+
+    #message {
+        min-height: 25px;
+        color: var(--accent);
+        font-weight: bold;
+    }
+
+    #reset {
+        margin-top: 25px;
+        padding: 9px 15px;
+        background: #222;
+        border: 1px solid #666;
+        color: #eee;
+        border-radius: 7px;
+        cursor: pointer;
+    }
+
+    @media (max-width: 700px) {
+        #currencies { grid-template-columns: 1fr; }
+        .upgrade { grid-template-columns: 1fr; }
+        .buy { width: 100%; }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>💾 Storage Media Clicker</h1>
+    <p>Start with floppy disks. End with ridiculous quantities of Blu-rays.</p>
+</header>
+
+<section id="currencies">
+    <div class="currency">
+        <div class="icon">💾</div>
+        <div class="name">Floppy Disks</div>
+        <div class="amount" id="floppyAmount">0</div>
+    </div>
+
+    <div class="currency">
+        <div class="icon">💿</div>
+        <div class="name">CDs</div>
+        <div class="amount" id="cdAmount">0</div>
+    </div>
+
+    <div class="currency">
+        <div class="icon">📀</div>
+        <div class="name">Blu-rays</div>
+        <div class="amount" id="bluAmount">0</div>
+    </div>
+</section>
+
+<main class="game">
+
+    <div id="message"></div>
+
+    <button id="mediaButton" onclick="clickCurrentCurrency()">
+        <span id="mediaIcon">💾</span>
+    </button>
+
+    <div id="clickInfo"></div>
+
+    <div id="menus">
+        <button class="menuButton active" id="menu0" onclick="selectMenu(0)">
+            💾 Floppy Upgrades
+        </button>
+
+        <button class="menuButton locked" id="menu1" onclick="selectMenu(1)">
+            💿 CD Upgrades
+        </button>
+
+        <button class="menuButton locked" id="menu2" onclick="selectMenu(2)">
+            📀 Blu-ray Upgrades
+        </button>
+    </div>
+
+    <div class="panel">
+        <h2 id="menuTitle">Floppy Disk Upgrades</h2>
+        <div id="upgrades"></div>
+    </div>
+
+    <div class="conversion" id="conversion"></div>
+
+    <button id="reset" onclick="resetGame()">Reset Entire Storage Economy</button>
+
+</main>
+
+<script>
+/*
+    STORAGE MEDIA CLICKER
+
+    Three currencies:
+      0 = Floppy Disks
+      1 = CDs
+      2 = Blu-rays
+
+    Each currency has six upgrades:
+      odd upgrades  = click upgrades
+      even upgrades = passive / second upgrades
+
+    Currency conversion:
+      10,000 Floppies -> 10 CDs
+      10,000 CDs      -> 10 Blu-rays
+*/
+
+const game = {
+    amounts: [0, 0, 0],
+
+    clickPower: [1, 1, 1],
+    perSecond: [0, 0, 0],
+
+    upgradeLevels: [
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0]
+    ],
+
+    currentMenu: 0
+};
+
+/*
+    Every menu has exactly six upgrades.
+
+    Odd-numbered upgrades:
+        click power
+
+    Even-numbered upgrades:
+        passive production
+*/
+
+const upgradeDefinitions = [
+    [
+        { name: "Better Clicking", type: "click", amount: 1, baseCost: 25 },
+        { name: "Tiny Floppy Factory", type: "second", amount: 1, baseCost: 100 },
+        { name: "Mechanical Clicker", type: "click", amount: 5, baseCost: 500 },
+        { name: "Floppy Production Line", type: "second", amount: 10, baseCost: 1500 },
+        { name: "Industrial Floppy Press", type: "click", amount: 25, baseCost: 10000 },
+        { name: "Floppy Megafactory", type: "second", amount: 100, baseCost: 50000 }
+    ],
+
+    [
+        { name: "Better CD Press", type: "click", amount: 1, baseCost: 10 },
+        { name: "CD Replicator", type: "second", amount: 1, baseCost: 50 },
+        { name: "Laser Etcher", type: "click", amount: 5, baseCost: 250 },
+        { name: "CD Production Line", type: "second", amount: 10, baseCost: 1000 },
+        { name: "Industrial CD Press", type: "click", amount: 25, baseCost: 5000 },
+        { name: "CD Megafactory", type: "second", amount: 100, baseCost: 25000 }
+    ],
+
+    [
+        { name: "Better Blu-ray Press", type: "click", amount: 1, baseCost: 10 },
+        { name: "Blu-ray Replicator", type: "second", amount: 1, baseCost: 50 },
+        { name: "Laser Array", type: "click", amount: 5, baseCost: 250 },
+        { name: "Blu-ray Production Line", type: "second", amount: 10, baseCost: 1000 },
+        { name: "Industrial Blu-ray Press", type: "click", amount: 25, baseCost: 5000 },
+        { name: "Blu-ray Megafactory", type: "second", amount: 100, baseCost: 25000 }
+    ]
+];
+
+const currencyNames = ["Floppy Disks", "CDs", "Blu-rays"];
+const currencyIcons = ["💾", "💿", "📀"];
+
+/*
+    Conversion settings.
+
+    10,000 of the lower currency gives 10 of the next currency.
+    The first conversion also unlocks the CD menu.
+    The second conversion unlocks the Blu-ray menu.
+*/
+const conversions = [
+    {
+        from: 0,
+        to: 1,
+        cost: 10000,
+        reward: 10
+    },
+    {
+        from: 1,
+        to: 2,
+        cost: 10000,
+        reward: 10
+    }
+];
+
+function formatNumber(number) {
+    if (number < 1000)
+        return Math.floor(number).toString();
+
+    if (number < 1000000)
+        return Math.floor(number).toLocaleString();
+
+    const suffixes = ["M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+    let value = number;
+    let suffix = "";
+
+    let index = -1;
+
+    while (value >= 1000 && index < suffixes.length - 1) {
+        value /= 1000;
+        index++;
+    }
+
+    suffix = suffixes[index];
+
+    return value.toFixed(value >= 100 ? 0 : value >= 10 ? 1 : 2) + suffix;
+}
+
+function getUpgradeCost(menu, index) {
+    const upgrade = upgradeDefinitions[menu][index];
+    const level = game.upgradeLevels[menu][index];
+
+    return Math.floor(upgrade.baseCost * Math.pow(1.65, level));
+}
+
+function clickCurrentCurrency() {
+    const menu = game.currentMenu;
+
+    game.amounts[menu] += game.clickPower[menu];
+
+    showMessage(
+        "+" + formatNumber(game.clickPower[menu]) +
+        " " + currencyNames[menu]
+    );
+
+    update();
+}
+
+function buyUpgrade(index) {
+    const menu = game.currentMenu;
+    const upgrade = upgradeDefinitions[menu][index];
+    const cost = getUpgradeCost(menu, index);
+
+    if (game.amounts[menu] < cost)
+        return;
+
+    game.amounts[menu] -= cost;
+    game.upgradeLevels[menu][index]++;
+
+    if (upgrade.type === "click") {
+        game.clickPower[menu] += upgrade.amount;
+    } else {
+        game.perSecond[menu] += upgrade.amount;
+    }
+
+    showMessage(
+        "Purchased " + upgrade.name + "!"
+    );
+
+    update();
+}
+
+function selectMenu(menu) {
+    if (menu === 1 && game.amounts[1] <= 0)
+        return;
+
+    if (menu === 2 && game.amounts[2] <= 0)
+        return;
+
+    game.currentMenu = menu;
+    update();
+}
+
+function canConvert(index) {
+    const conversion = conversions[index];
+
+    return game.amounts[conversion.from] >= conversion.cost;
+}
+
+function convert(index) {
+    const conversion = conversions[index];
+
+    if (!canConvert(index))
+        return;
+
+    game.amounts[conversion.from] -= conversion.cost;
+    game.amounts[conversion.to] += conversion.reward;
+
+    showMessage(
+        "Converted " +
+        formatNumber(conversion.cost) + " " +
+        currencyNames[conversion.from] +
+        " → " +
+        conversion.reward + " " +
+        currencyNames[conversion.to] + "!"
+    );
+
+    update();
+}
+
+function renderUpgrades() {
+    const container = document.getElementById("upgrades");
+    const menu = game.currentMenu;
+
+    container.innerHTML = "";
+
+    upgradeDefinitions[menu].forEach((upgrade, index) => {
+        const level = game.upgradeLevels[menu][index];
+        const cost = getUpgradeCost(menu, index);
+
+        const div = document.createElement("div");
+        div.className = "upgrade";
+
+        const effect =
+            upgrade.type === "click"
+                ? "+" + formatNumber(upgrade.amount) + " per click"
+                : "+" + formatNumber(upgrade.amount) + " per second";
+
+        div.innerHTML = `
+            <div>
+                <h3>${index + 1}. ${upgrade.name}</h3>
+                <p>${effect} · Level ${level}</p>
+            </div>
+
+            <button class="buy"
+                    onclick="buyUpgrade(${index})"
+                    ${game.amounts[menu] < cost ? "disabled" : ""}>
+                Buy · ${formatNumber(cost)} ${currencyIcons[menu]}
+            </button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+function renderConversion() {
+    const container = document.getElementById("conversion");
+
+    if (game.currentMenu === 0) {
+        const c = conversions[0];
+
+        container.innerHTML = `
+            <h2>💾 → 💿 Conversion</h2>
+            <p>
+                Convert ${formatNumber(c.cost)} Floppy Disks
+                into ${c.reward} CDs.
+            </p>
+
+            <button onclick="convert(0)"
+                    ${canConvert(0) ? "" : "disabled"}>
+                Convert Floppies → CDs
+            </button>
+        `;
+
+        return;
+    }
+
+    if (game.currentMenu === 1) {
+        const c = conversions[1];
+
+        container.innerHTML = `
+            <h2>💿 → 📀 Conversion</h2>
+            <p>
+                Convert ${formatNumber(c.cost)} CDs
+                into ${c.reward} Blu-rays.
+            </p>
+
+            <button onclick="convert(1)"
+                    ${canConvert(1) ? "" : "disabled"}>
+                Convert CDs → Blu-rays
+            </button>
+        `;
+
+        return;
+    }
+
+    container.innerHTML = `
+        <h2>📀 Blu-ray Production</h2>
+        <p>
+            You've reached the final currently available
+            storage-media tier.
+        </p>
+    `;
+}
+
+function updateMenus() {
+    const menu0 = document.getElementById("menu0");
+    const menu1 = document.getElementById("menu1");
+    const menu2 = document.getElementById("menu2");
+
+    menu0.classList.toggle("active", game.currentMenu === 0);
+
+    const cdUnlocked = game.amounts[1] > 0;
+    const bluUnlocked = game.amounts[2] > 0;
+
+    menu1.disabled = !cdUnlocked;
+    menu2.disabled = !bluUnlocked;
+
+    menu1.classList.toggle("locked", !cdUnlocked);
+    menu2.classList.toggle("locked", !bluUnlocked);
+
+    menu1.classList.toggle("active", game.currentMenu === 1);
+    menu2.classList.toggle("active", game.currentMenu === 2);
+
+    if (!cdUnlocked)
+        menu1.title = "Convert Floppy Disks into CDs to unlock this menu.";
+
+    if (!bluUnlocked)
+        menu2.title = "Convert CDs into Blu-rays to unlock this menu.";
+}
+
+function update() {
+    document.getElementById("floppyAmount").textContent =
+        formatNumber(game.amounts[0]);
+
+    document.getElementById("cdAmount").textContent =
+        formatNumber(game.amounts[1]);
+
+    document.getElementById("bluAmount").textContent =
+        formatNumber(game.amounts[2]);
+
+    document.getElementById("mediaIcon").textContent =
+        currencyIcons[game.currentMenu];
+
+    document.getElementById("clickInfo").textContent =
+        "+" + formatNumber(game.clickPower[game.currentMenu]) +
+        " per click · " +
+        formatNumber(game.perSecond[game.currentMenu]) +
+        " per second";
+
+    document.getElementById("menuTitle").textContent =
+        currencyNames[game.currentMenu] + " Upgrades";
+
+    updateMenus();
+    renderUpgrades();
+    renderConversion();
+
+    save();
+}
+
+function showMessage(message) {
+    document.getElementById("message").textContent = message;
+
+    clearTimeout(window.messageTimer);
+
+    window.messageTimer = setTimeout(() => {
+        document.getElementById("message").textContent = "";
+    }, 1800);
+}
+
+function save() {
+    localStorage.setItem("storageClicker", JSON.stringify(game));
+}
+
+function load() {
+    const saved = localStorage.getItem("storageClicker");
+
+    if (!saved)
+        return;
+
+    try {
+        const data = JSON.parse(saved);
+
+        if (!Array.isArray(data.amounts) ||
+            !Array.isArray(data.clickPower) ||
+            !Array.isArray(data.perSecond) ||
+            !Array.isArray(data.upgradeLevels))
+            return;
+
+        game.amounts = data.amounts;
+        game.clickPower = data.clickPower;
+        game.perSecond = data.perSecond;
+        game.upgradeLevels = data.upgradeLevels;
+        game.currentMenu = Number(data.currentMenu) || 0;
+
+    } catch (error) {
+        console.warn("Save could not be loaded:", error);
+    }
+}
+
+function resetGame() {
+    if (!confirm(
+        "This will erase all floppy disks, CDs, Blu-rays, upgrades, and progress. Continue?"
+    ))
+        return;
+
+    localStorage.removeItem("storageClicker");
+
+    location.reload();
+}
+
+/*
+    Passive production.
+    Every second, each unlocked currency receives
+    its own per-second production.
+*/
+setInterval(() => {
+    for (let i = 0; i < 3; i++) {
+        game.amounts[i] += game.perSecond[i];
+    }
+
+    update();
+}, 1000);
+
+load();
+update();
+</script>
+
+</body>
+</html>
