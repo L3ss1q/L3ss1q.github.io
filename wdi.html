@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Missing Thing</title>
+<style>
+body{margin:0;background:#111;color:#eee;font-family:system-ui,monospace}
+main{max-width:1000px;margin:auto;padding:18px}
+h1{text-align:center}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:#1b2024;border:1px solid #3b464d;border-radius:10px;padding:12px}
+button{font:inherit;background:#29343b;color:#fff;border:1px solid #56636b;border-radius:7px;padding:8px 10px;margin:3px;cursor:pointer}
+button:hover{background:#35444d}
+#scene{min-height:150px}
+#log{min-height:120px;white-space:pre-wrap;background:#090c0e;padding:10px;border-radius:7px}
+.clue{padding:5px;border-bottom:1px solid #30383d}
+.good{font-weight:bold}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>🕵️ The Missing Thing</h1>
+<p style="text-align:center">Case <b id="caseNo">1</b>: <span id="caseName"></span></p>
+
+<div class="grid">
+<section class="panel">
+<h2>📍 Investigation</h2>
+<div id="scene"></div>
+<div id="actions"></div>
+</section>
+
+<section class="panel">
+<h2>🗂️ Evidence</h2>
+<div id="evidence"></div>
+</section>
+</div>
+
+<section class="panel" style="margin-top:12px">
+<h2>💬 Case Log</h2>
+<div id="log"></div>
+</section>
+
+<p style="text-align:center">
+<button onclick="newCase()">🗃️ New Case</button>
+<button onclick="accuse()">⚖️ Make Deduction</button>
+</p>
+</main>
+
+<script>
+const cases=[
+{
+name:"The Missing Sandwich",
+missing:"the office sandwich",
+people:["Alex","Jamie","Morgan"],
+rooms:["Kitchen","Office","Hallway"],
+clues:[
+["Kitchen","A plate with crumbs and a suspicious amount of mustard."],
+["Office","Alex's notebook is open to a page about sandwiches."],
+["Hallway","There are tiny bread crumbs leading toward the office."]
+],
+truth:"Alex",
+hint:"Follow the crumbs."
+},
+{
+name:"The Stolen Keyboard",
+missing:"the mechanical keyboard",
+people:["Riley","Jamie","Morgan"],
+rooms:["Office","Storage","Break Room"],
+clues:[
+["Storage","An empty box labeled 'KEYBOARD'."],
+["Break Room","Someone left a screwdriver on the table."],
+["Office","Riley's computer is still logged in."]
+],
+truth:"Riley",
+hint:"The computer was left behind for a reason."
+},
+{
+name:"Who Unplugged The Router",
+missing:"the router connection",
+people:["Morgan","Alex","Riley"],
+rooms:["Server Room","Hallway","Kitchen"],
+clues:[
+["Server Room","The router cable has been unplugged."],
+["Hallway","A trail of muddy footprints leads to the server room."],
+["Kitchen","Morgan's shoes have fresh mud on them."]
+],
+truth:"Morgan",
+hint:"The footprints are not subtle."
+}
+];
+
+let caseIndex=0;
+let found=[];
+let visited=[];
+let logs=[];
+let solved=false;
+
+function current(){return cases[caseIndex]}
+
+function newCase(){
+caseIndex=Math.floor(Math.random()*cases.length);
+found=[];
+visited=[];
+logs=[];
+solved=false;
+log("New case opened.\nSomething has disappeared: "+current().missing+".");
+render();
+}
+
+function render(){
+const c=current();
+document.getElementById("caseNo").textContent=caseIndex+1;
+document.getElementById("caseName").textContent=c.name;
+
+let scene="<b>People:</b> "+c.people.join(", ")+"<br><br><b>Rooms:</b>";
+c.rooms.forEach((r,i)=>{
+scene+=`<button onclick="searchRoom(${i})">🔎 ${r}</button>`;
+});
+document.getElementById("scene").innerHTML=scene;
+
+let actions="<b>Question someone:</b><br>";
+c.people.forEach((p,i)=>{
+actions+=`<button onclick="question(${i})">💬 ${p}</button>`;
+});
+document.getElementById("actions").innerHTML=actions;
+
+document.getElementById("evidence").innerHTML=
+found.length
+? found.map(x=>`<div class="clue">🔎 ${x}</div>`).join("")
+: "<i>No evidence yet.</i>";
+
+document.getElementById("log").textContent=logs.join("\n\n");
+}
+
+function searchRoom(i){
+const c=current(), room=c.rooms[i];
+if(visited.includes(room)){
+log("You've already searched the "+room+".");
+return;
+}
+visited.push(room);
+
+const clue=c.clues.find(x=>x[0]===room);
+if(clue){
+found.push(room+": "+clue[1]);
+logs.unshift("You searched the "+room+".\n"+clue[1]);
+}else{
+logs.unshift("You searched the "+room+". Nothing useful.");
+}
+render();
+}
+
+function question(i){
+const c=current(), p=c.people[i];
+let text;
+if(p===c.truth){
+text=p+': "I wasn't near the missing item. Seriously."';
+}else{
+text=p+': "I saw something strange, but I don’t know who did it."';
+}
+logs.unshift("You questioned "+p+".\n"+text);
+render();
+}
+
+function accuse(){
+if(solved)return;
+
+const c=current();
+if(found.length<2){
+logs.unshift("You don't have enough evidence yet. Search around first.");
+render();
+return;
+}
+
+const guess=prompt("Who do you accuse?\n\n"+c.people.join(", "));
+if(!guess)return;
+
+const match=c.people.find(p=>p.toLowerCase()===guess.trim().toLowerCase());
+
+if(match===c.truth){
+logs.unshift("✅ DEDUCTION CORRECT.\n"+match+" is responsible.\n\n"+c.hint);
+solved=true;
+}else{
+logs.unshift("❌ That doesn't fit the evidence.\nKeep investigating.");
+}
+render();
+}
+
+function log(t){logs.unshift(t);render()}
+
+newCase();
+</script>
+</body>
+</html>
