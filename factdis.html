@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Factory Disaster</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#111;color:#eee;font-family:system-ui,sans-serif}
+header{text-align:center;padding:18px;background:#191919;border-bottom:2px solid #444}
+header h1{margin:0 0 5px}.muted{color:#aaa}
+#app{max-width:1100px;margin:auto;padding:14px}
+#stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.stat,.panel{background:#1b1b1b;border:1px solid #444;border-radius:10px;padding:12px}
+.stat{flex:1;min-width:130px;text-align:center}
+.stat b{display:block;font-size:20px;margin-top:4px}
+#main{display:grid;grid-template-columns:220px 1fr;gap:12px}
+#parts{display:grid;gap:8px}
+.part{padding:10px;border:1px solid #555;border-radius:8px;background:#252525;color:#fff;cursor:pointer;text-align:left}
+.part:hover{background:#303030}
+#grid{display:grid;grid-template-columns:repeat(12,1fr);gap:3px;background:#0b0b0b;padding:6px;border-radius:8px;min-height:520px}
+.cell{aspect-ratio:1;background:#181818;border:1px solid #292929;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;user-select:none}
+.cell:hover{border-color:#aaa}
+.machine{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative}
+.machine small{position:absolute;bottom:1px;right:2px;font-size:8px;color:#bbb}
+#controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+button{padding:10px 14px;border:1px solid #666;border-radius:7px;background:#292929;color:#fff;cursor:pointer;font-weight:bold}
+button:disabled{opacity:.4;cursor:not-allowed}
+#message{min-height:24px;margin:10px 0;color:#7dd3fc;font-weight:bold}
+#levels{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.level{min-width:38px}.level.active{border-color:#7dd3fc}.level.locked{opacity:.35}
+#objective{margin-bottom:12px}
+@media(max-width:800px){#main{grid-template-columns:1fr}#grid{min-height:350px}}
+</style>
+</head>
+<body>
+<header>
+<h1>🏭 Factory Disaster</h1>
+<div class="muted">Build the machine. Press START. Pray.</div>
+</header>
+<div id="app">
+<div id="stats">
+<div class="stat">Level<b id="levelText">1 / 26</b></div>
+<div class="stat">Products<b id="products">0</b></div>
+<div class="stat">Power<b id="power">0 / 0</b></div>
+<div class="stat">Time<b id="time">0.0s</b></div>
+</div>
+
+<div id="levels"></div>
+
+<div class="panel" id="objective"></div>
+
+<div id="main">
+<div class="panel">
+<h3>Machines</h3>
+<div id="parts"></div>
+<p class="muted">Select a machine, then click a grid cell to place it. Click an occupied cell to remove it.</p>
+</div>
+<div>
+<div class="panel"><div id="grid"></div></div>
+<div id="message"></div>
+<div id="controls">
+<button onclick="startFactory()">▶ START</button>
+<button onclick="stopFactory()">■ STOP</button>
+<button onclick="clearFactory()">↻ CLEAR</button>
+<button onclick="checkLevel()">✓ CHECK</button>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+const W=12,H=12;
+const defs={
+ miner:{icon:"⛏️",name:"Miner",power:2,rate:1},
+ furnace:{icon:"🔥",name:"Furnace",power:4,rate:1},
+ assembler:{icon:"🔧",name:"Assembler",power:6,rate:1},
+ storage:{icon:"📦",name:"Storage",power:1,rate:0},
+ conveyor:{icon:"➡️",name:"Conveyor",power:1,rate:0},
+ generator:{icon:"⚡",name:"Generator",power:-12,rate:0}
+};
+
+const levels=Array.from({length:26},(_,i)=>{
+ const n=i+1;
+ return {
+   target: n<=5?n*10:n<=10?n*25:n<=15?n*50:n<=20?n*100:n*200,
+   time: n<=8?60:n<=17?50:45,
+   maxMachines: n<=5?8:n<=12?12:n<=20?18:24,
+   power: n<=10?30:n<=20?55:80
+ };
+});
+
+let current=0, selected="miner", running=false, elapsed=0, products=0, timer=null;
+let unlocked=1;
+let board=Array(W*H).fill(null);
+
+function idx(x,y){return y*W+x}
+function renderParts(){
+ const p=document.getElementById("parts");p.innerHTML="";
+ Object.entries(defs).forEach(([id,d])=>{
+  const b=document.createElement("button");b.className="part";
+  b.innerHTML=d.icon+" "+d.name+"<br><span class='muted'>Power: "+d.power+"</span>";
+  b.onclick=()=>{selected=id;message("Selected "+d.name+".");};
+  p.appendChild(b);
+ });
+}
+function renderLevels(){
+ const box=document.getElementById("levels");box.innerHTML="";
+ levels.forEach((_,i)=>{
+  const b=document.createElement("button");
+  b.className="level "+(i===current?"active ":"")+(i>=unlocked?"locked":"");
+  b.textContent=i+1;b.disabled=i>=unlocked;
+  b.onclick=()=>loadLevel(i);box.appendChild(b);
+ });
+}
+function renderGrid(){
+ const g=document.getElementById("grid");g.innerHTML="";
+ board.forEach((item,i)=>{
+  const c=document.createElement("div");c.className="cell";
+  if(item){
+   const m=document.createElement("div");m.className="machine";
+   m.textContent=defs[item].icon;c.appendChild(m);
+  }
+  c.onclick=()=>toggleCell(i);g.appendChild(c);
+ });
+}
+function renderObjective(){
+ const l=levels[current];
+ document.getElementById("objective").innerHTML=
+ `<b>Level ${current+1}</b><br>Produce at least <b>${l.target}</b> products in <b>${l.time}s</b>.<br>
+ Use no more than <b>${l.maxMachines}</b> machines and keep power at or below <b>${l.power}</b>.`;
+}
+function loadLevel(n){
+ if(n>=unlocked)return;
+ stopFactory();current=n;clearFactory(false);renderLevels();renderObjective();message("Level "+(n+1)+" loaded.");
+}
+function toggleCell(i){
+ if(running)return;
+ if(board[i]) board[i]=null; else board[i]=selected;
+ renderGrid();updateStats();
+}
+function clearFactory(show=true){
+ board=Array(W*H).fill(null);products=0;elapsed=0;renderGrid();updateStats();
+ if(show)message("Factory cleared.");
+}
+function counts(){
+ const c={};Object.keys(defs).forEach(k=>c[k]=0);
+ board.forEach(x=>{if(x)c[x]++});return c;
+}
+function machineCount(){return board.filter(Boolean).length}
+function powerUse(){
+ return board.reduce((s,x)=>x?s+defs[x].power:s,0)
+}
+function productionRate(){
+ const c=counts();
+ const miners=c.miner, furnaces=c.furnace, assemblers=c.assembler;
+ return Math.max(0,Math.min(miners,furnaces,assemblers));
+}
+function updateStats(){
+ document.getElementById("levelText").textContent=(current+1)+" / 26";
+ document.getElementById("products").textContent=Math.floor(products);
+ document.getElementById("power").textContent=powerUse()+" / "+levels[current].power;
+ document.getElementById("time").textContent=elapsed.toFixed(1)+"s";
+}
+function startFactory(){
+ if(running)return;
+ const l=levels[current];
+ if(machineCount()>l.maxMachines){message("Too many machines!");return}
+ if(powerUse()>l.power){message("Factory is drawing too much power!");return}
+ if(productionRate()<=0){message("You need at least one Miner, Furnace, and Assembler.");return}
+ running=true;elapsed=0;products=0;
+ message("FACTORY STARTED. 🔥");
+ timer=setInterval(()=>{
+   elapsed+=0.1;products+=productionRate()/10;updateStats();
+   if(elapsed>=l.time){stopFactory();checkLevel();}
+ },100);
+}
+function stopFactory(){
+ if(timer){clearInterval(timer);timer=null}
+ if(running){running=false;message("Factory stopped.");}
+}
+function checkLevel(){
+ const l=levels[current],rate=productionRate();
+ if(machineCount()>l.maxMachines){message("✗ Too many machines.");return}
+ if(powerUse()>l.power){message("✗ Power limit exceeded.");return}
+ if(products>=l.target){message("✓ LEVEL COMPLETE! 🏭");
+   if(current+1<26)unlocked=Math.max(unlocked,current+2);
+   renderLevels();
+ }else{
+   message("✗ Objective not met. Need "+l.target+" products; you made "+Math.floor(products)+".");
+ }
+ updateStats();
+}
+function message(s){document.getElementById("message").textContent=s}
+renderParts();renderLevels();renderObjective();renderGrid();updateStats();
+</script>
+</body>
+</html>
