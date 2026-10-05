@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Unknown Territory</title>
+<style>
+  body{margin:0;background:#10151a;color:#e8f0e8;font-family:system-ui,monospace;text-align:center}
+  main{max-width:900px;margin:auto;padding:18px}
+  h1{margin-bottom:4px}
+  #stats{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+  .stat{background:#1c252b;border:1px solid #35434a;border-radius:8px;padding:7px 10px}
+  #map{display:grid;grid-template-columns:repeat(9,48px);grid-auto-rows:48px;gap:3px;justify-content:center;margin:16px auto}
+  .cell{display:flex;align-items:center;justify-content:center;background:#26342b;border-radius:5px;font-size:23px;user-select:none}
+  .hidden{background:#080b0d;color:transparent}
+  .player{outline:3px solid #f0d45a;outline-offset:-3px}
+  button{font:inherit;background:#253039;color:#fff;border:1px solid #52636d;border-radius:7px;padding:9px 13px;margin:3px;cursor:pointer}
+  button:hover{background:#31414b}
+  #log{min-height:80px;background:#0b1013;border:1px solid #2d3940;border-radius:8px;padding:10px;text-align:left;white-space:pre-wrap}
+  .small{opacity:.75;font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <h1>🌲 Unknown Territory</h1>
+  <div class="small">Every expedition is different. Try not to get lost.</div>
+
+  <div id="stats">
+    <div class="stat">❤️ Stamina: <b id="stamina">20</b></div>
+    <div class="stat">🎒 Items: <b id="items">0</b></div>
+    <div class="stat">🗺️ Explored: <b id="explored">0%</b></div>
+    <div class="stat">🌙 Time: <b id="time">Day</b></div>
+  </div>
+
+  <div id="map"></div>
+
+  <div>
+    <button onclick="move(0,-1)">⬆️</button><br>
+    <button onclick="move(-1,0)">⬅️</button>
+    <button onclick="move(0,1)">⬇️</button>
+    <button onclick="move(1,0)">➡️</button>
+  </div>
+
+  <p>
+    <button onclick="newExpedition()">🧭 New Expedition</button>
+  </p>
+
+  <div id="log">Your expedition begins...</div>
+</main>
+
+<script>
+const SIZE = 9;
+
+const locations = {
+  forest:{icon:"🌲",name:"Forest"},
+  lake:{icon:"🌊",name:"Lake"},
+  ruins:{icon:"🏚️",name:"Ruins"},
+  cave:{icon:"🕳️",name:"Cave"},
+  meadow:{icon:"🌼",name:"Meadow"},
+  tower:{icon:"🗼",name:"Tower"},
+  camp:{icon:"🏕️",name:"Camp"},
+  swamp:{icon:"🐊",name:"Swamp"},
+  bridge:{icon:"🌉",name:"Bridge"},
+  treasure:{icon:"💎",name:"Treasure"},
+  gate:{icon:"🗿",name:"Ancient Gate"}
+};
+
+let map = [];
+let revealed = [];
+let playerX = 4;
+let playerY = 4;
+let stamina = 20;
+let items = 0;
+let hour = 8;
+let gameOver = false;
+
+function randomLocation(){
+  const pool = ["forest","forest","forest","lake","ruins","cave","meadow","tower","camp","swamp","bridge"];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function newExpedition(){
+  map = Array.from({length:SIZE},()=>Array.from({length:SIZE},randomLocation));
+  revealed = Array.from({length:SIZE},()=>Array(SIZE).fill(false));
+
+  playerX = Math.floor(SIZE/2);
+  playerY = Math.floor(SIZE/2);
+
+  map[playerY][playerX] = "camp";
+
+  // Give every expedition a destination somewhere away from the start.
+  let gx,gy;
+  do {
+    gx = Math.floor(Math.random()*SIZE);
+    gy = Math.floor(Math.random()*SIZE);
+  } while(Math.abs(gx-playerX)+Math.abs(gy-playerY)<6);
+  map[gy][gx] = "gate";
+
+  stamina = 20;
+  items = 0;
+  hour = 8;
+  gameOver = false;
+
+  revealAround();
+  log("A new territory has been discovered.\nFind the Ancient Gate.");
+  render();
+}
+
+function revealAround(){
+  for(let y=playerY-1;y<=playerY+1;y++){
+    for(let x=playerX-1;x<=playerX+1;x++){
+      if(x>=0&&x<SIZE&&y>=0&&y<SIZE) revealed[y][x]=true;
+    }
+  }
+}
+
+function move(dx,dy){
+  if(gameOver) return;
+
+  const nx = playerX+dx;
+  const ny = playerY+dy;
+
+  if(nx<0||nx>=SIZE||ny<0||ny>=SIZE){
+    log("You cannot go that way.");
+    return;
+  }
+
+  if(stamina<=0){
+    log("You're exhausted. Start a new expedition.");
+    return;
+  }
+
+  playerX=nx;
+  playerY=ny;
+  stamina--;
+  hour++;
+
+  if(hour>=24) hour=0;
+
+  revealAround();
+  encounter(map[playerY][playerX]);
+
+  if(stamina<=0 && map[playerY][playerX]!=="camp"){
+    log("You collapse from exhaustion. Expedition over.");
+    gameOver=true;
+  }
+
+  render();
+}
+
+function encounter(type){
+  const name = locations[type].name;
+
+  if(type==="treasure"){
+    items++;
+    map[playerY][playerX]="meadow";
+    log("💎 You found a treasure!\nItems: "+items);
+    return;
+  }
+
+  if(type==="camp"){
+    stamina=Math.min(20,stamina+8);
+    log("🏕️ You found your camp and recovered some stamina.");
+    return;
+  }
+
+  if(type==="gate"){
+    log("🗿 THE ANCIENT GATE.\n\nYou found the objective!\nYou survived the expedition.");
+    gameOver=true;
+    return;
+  }
+
+  if(type==="cave" && Math.random()<0.35){
+    items++;
+    log("🕳️ The cave contained something useful.\n🎒 Items: "+items);
+    return;
+  }
+
+  if(type==="tower"){
+    log("🗼 From the tower you can see farther into the territory.");
+    revealAround();
+    return;
+  }
+
+  if(type==="ruins" && Math.random()<0.3){
+    map[playerY][playerX]="treasure";
+    log("🏚️ You discovered old ruins.\nSomething glitters in the debris...");
+    return;
+  }
+
+  if(type==="swamp"){
+    stamina=Math.max(0,stamina-1);
+    log("🐊 The swamp slows you down.");
+    return;
+  }
+
+  if(type==="lake"){
+    log("🌊 A lake blocks the path. Peaceful... suspiciously peaceful.");
+    return;
+  }
+
+  if(type==="forest"){
+    log("🌲 Dense forest surrounds you.");
+    return;
+  }
+
+  log("You entered a "+name+".");
+}
+
+function render(){
+  const mapEl=document.getElementById("map");
+  mapEl.innerHTML="";
+
+  let seen=0;
+
+  for(let y=0;y<SIZE;y++){
+    for(let x=0;x<SIZE;x++){
+      const cell=document.createElement("div");
+      cell.className="cell";
+
+      if(!revealed[y][x]){
+        cell.classList.add("hidden");
+      }else{
+        seen++;
+        cell.textContent=locations[map[y][x]].icon;
+      }
+
+      if(x===playerX && y===playerY){
+        cell.classList.add("player");
+        cell.textContent="🧭";
+      }
+
+      mapEl.appendChild(cell);
+    }
+  }
+
+  document.getElementById("stamina").textContent=stamina;
+  document.getElementById("items").textContent=items;
+  document.getElementById("explored").textContent=Math.round(seen/(SIZE*SIZE)*100)+"%";
+
+  const displayHour=hour%12||12;
+  const suffix=hour<12?"AM":"PM";
+  document.getElementById("time").textContent=displayHour+":00 "+suffix;
+}
+
+function log(message){
+  document.getElementById("log").textContent=message;
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="ArrowUp"||e.key==="w") move(0,-1);
+  if(e.key==="ArrowDown"||e.key==="s") move(0,1);
+  if(e.key==="ArrowLeft"||e.key==="a") move(-1,0);
+  if(e.key==="ArrowRight"||e.key==="d") move(1,0);
+});
+
+newExpedition();
+</script>
+</body>
+</html>
