@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logic Lab</title>
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--panel2:#21262d;--line:#30363d;--text:#f0f6fc;--muted:#8b949e;--good:#3fb950;--bad:#f85149;--accent:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,sans-serif}header{padding:20px;text-align:center;border-bottom:1px solid var(--line);background:var(--panel)}header h1{margin:0}.wrap{max-width:1100px;margin:auto;padding:18px}.top{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between}.levels{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}.levels button,.gateBtn,.action{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:7px;padding:8px 11px;cursor:pointer}.levels button.done{border-color:var(--good)}.levels button.active{border-color:var(--accent);background:#1f6feb33}.levels button:disabled{opacity:.35;cursor:not-allowed}.objective{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px;margin-bottom:14px}.objective b{color:var(--accent)}.lab{display:grid;grid-template-columns:220px 1fr;gap:14px}.side,.board{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}.side h3{margin-top:0}.gateBtn{display:block;width:100%;text-align:left;margin:7px 0}.gateBtn strong{float:right}.board{min-height:430px}.toolbar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}.canvas{position:relative;min-height:330px;border:1px dashed var(--line);border-radius:8px;background:#0b0f14;overflow:hidden}.node{position:absolute;width:110px;background:var(--panel2);border:2px solid #555;border-radius:8px;padding:8px;text-align:center;cursor:grab;user-select:none}.node.selected{border-color:var(--accent)}.node .ports{font-size:11px;color:var(--muted);margin-top:5px}.node[data-type="OUT"]{border-color:var(--good)}.node[data-type="IN"]{border-color:var(--accent)}.node[data-type="NOT"]{border-color:#d29922}.node[data-type="AND"],.node[data-type="OR"],.node[data-type="XOR"],.node[data-type="NAND"],.node[data-type="NOR"],.node[data-type="XNOR"]{border-color:#bc8cff}.wire{position:absolute;height:3px;background:#58a6ff;transform-origin:left center;pointer-events:none}.status{margin-top:12px;padding:11px;border-radius:7px;background:var(--panel2)}.status.good{border:1px solid var(--good);color:#aff5b4}.status.bad{border:1px solid var(--bad);color:#ffaaa5}.truth{margin-top:12px;overflow:auto}.truth table{border-collapse:collapse;width:100%}.truth th,.truth td{border:1px solid var(--line);padding:7px;text-align:center}.truth th{background:var(--panel2)}.hint{color:var(--muted);font-size:13px}.locked{opacity:.5}@media(max-width:750px){.lab{grid-template-columns:1fr}.side{order:2}.board{order:1}}
+</style>
+</head>
+<body>
+<header><h1>🧠 Logic Lab</h1><div class="hint">Build the machine. Make the truth table obey you.</div></header>
+<div class="wrap">
+<div class="top"><div><b id="levelName"></b><div class="hint" id="progress"></div></div><button class="action" onclick="resetLevel()">Reset Level</button></div>
+<div class="levels" id="levels"></div>
+<div class="objective"><b>OBJECTIVE</b><div id="objective"></div><div class="hint" id="available"></div></div>
+<div class="lab">
+<aside class="side"><h3>Logic Gates</h3><div id="palette"></div><hr><div class="hint">Drag gates around the board. Click a gate, then another gate to connect them. Inputs connect from the left and outputs connect to the right.</div></aside>
+<section class="board"><div class="toolbar"><button class="action" onclick="testMachine()">▶ Test Machine</button><button class="action" onclick="clearSelection()">Clear Selection</button></div><div class="canvas" id="canvas"></div><div id="status" class="status">Build a circuit, then test it.</div><div class="truth" id="truth"></div></section>
+</div></div>
+<script>
+const GATES=['AND','OR','NOT','NAND','NOR','XOR','XNOR'];
+const levels=[
+{name:'AND It Begins',inputs:2,allowed:{AND:1},target:[0,0,0,1],objective:'Output TRUE only when A and B are both TRUE.'},
+{name:'Either Way',inputs:2,allowed:{OR:1},target:[0,1,1,1],objective:'Output TRUE when at least one input is TRUE.'},
+{name:'Flip It',inputs:1,allowed:{NOT:1},target:[1,0],objective:'Output the opposite of A.'},
+{name:'Not Both',inputs:2,allowed:{NAND:1},target:[1,1,1,0],objective:'Output FALSE only when A and B are both TRUE.'},
+{name:'Neither',inputs:2,allowed:{NOR:1},target:[1,0,0,0],objective:'Output TRUE only when both inputs are FALSE.'},
+{name:'Exactly One',inputs:2,allowed:{XOR:1},target:[0,1,1,0],objective:'Output TRUE when exactly one input is TRUE.'},
+{name:'Same',inputs:2,allowed:{XNOR:1},target:[1,0,0,1],objective:'Output TRUE when A and B match.'},
+{name:'Double Flip',inputs:1,allowed:{NOT:2},target:[0,1],objective:'Build a two-gate machine that behaves exactly like A.'},
+{name:'OR Without OR',inputs:2,allowed:{AND:1,NOT:2},target:[0,1,1,1],objective:'Make an OR using only AND and NOT.'},
+{name:'AND Without AND',inputs:2,allowed:{NAND:3},target:[0,0,0,1],objective:'Make an AND using only NAND gates.'},
+{name:'NORception',inputs:2,allowed:{NOR:3},target:[0,1,1,1],objective:'Make an OR using only NOR gates.'},
+{name:'XOR Builder',inputs:2,allowed:{AND:2,OR:1,NOT:2},target:[0,1,1,0],objective:'Build XOR without using XOR.'},
+{name:'Majority Rules',inputs:3,allowed:{AND:3,OR:2},target:[0,0,0,1,0,1,1,1],objective:'Output TRUE when at least two of A, B, C are TRUE.'},
+{name:'Minority Report',inputs:3,allowed:{AND:3,OR:2,NOT:3},target:[1,1,1,0,1,0,0,0],objective:'Output TRUE when fewer than two inputs are TRUE.'},
+{name:'A But Not B',inputs:2,allowed:{AND:1,NOT:1},target:[0,0,1,0],objective:'Output TRUE only when A is TRUE and B is FALSE.'},
+{name:'B But Not A',inputs:2,allowed:{AND:1,NOT:1},target:[0,1,0,0],objective:'Output TRUE only when B is TRUE and A is FALSE.'},
+{name:'Three-Way AND',inputs:3,allowed:{AND:2},target:[0,0,0,0,0,0,0,1],objective:'Output TRUE only when all three inputs are TRUE.'},
+{name:'Three-Way OR',inputs:3,allowed:{OR:2},target:[0,1,1,1,1,1,1,1],objective:'Output TRUE when any of the three inputs is TRUE.'},
+{name:'Odd One Out',inputs:3,allowed:{XOR:2},target:[0,1,1,0,1,0,0,1],objective:'Output TRUE when an odd number of inputs are TRUE.'},
+{name:'Even Stevens',inputs:3,allowed:{XNOR:2},target:[1,0,0,1,0,1,1,0],objective:'Output TRUE when an even number of inputs are TRUE.'},
+{name:'Universal NAND',inputs:3,allowed:{NAND:5},target:[0,0,0,1,0,1,1,1],objective:'Build a 3-input majority machine using NAND gates only.'},
+{name:'Universal NOR',inputs:3,allowed:{NOR:5},target:[1,0,0,0,0,0,0,0],objective:'Output TRUE only when all three inputs are FALSE, using NOR gates only.'},
+{name:'Parity Machine',inputs:4,allowed:{XOR:3},target:[0,1,1,0,1,0,0,1,1,0,0,1,0,1,1,0],objective:'Output TRUE when an odd number of four inputs are TRUE.'},
+{name:'Four-Way AND',inputs:4,allowed:{AND:3},target:Array(15).fill(0).concat([1]),objective:'Output TRUE only when all four inputs are TRUE.'},
+{name:'The Final Circuit',inputs:4,allowed:{AND:5,OR:3,NOT:4,XOR:2},target:[1,0,0,1,0,1,1,0,0,1,1,0,1,0,0,1],objective:'Build XNOR of the XOR of A,B and the XOR of C,D. The output is TRUE when the two pairs have matching parity.'}
+];
+let state={level:0,nodes:[],wires:[],selected:null,counts:{}};
+const canvas=document.getElementById('canvas');
+function fmt(v){return v?'1':'0'}
+function gateEval(type,a,b){switch(type){case'AND':return a&&b;case'OR':return a||b;case'NOT':return!a;case'NAND':return!(a&&b);case'NOR':return!(a||b);case'XOR':return!!(a!==b);case'XNOR':return!!(a===b)}}
+function renderLevels(){let el=document.getElementById('levels');el.innerHTML='';levels.forEach((l,i)=>{let b=document.createElement('button');b.textContent=i+1;b.className=(i===state.level?'active ':'')+(i<state.level?'done':'');b.disabled=i>state.level;b.onclick=()=>loadLevel(i);el.appendChild(b)})}
+function loadLevel(i){state={level:i,nodes:[],wires:[],selected:null,counts:{}};for(let g in levels[i].allowed)state.counts[g]=levels[i].allowed[g];render()}
+function resetLevel(){loadLevel(state.level)}
+function renderPalette(){let p=document.getElementById('palette');p.innerHTML='';let used={};state.nodes.forEach(n=>{if(n.type!=='IN'&&n.type!=='OUT')used[n.type]=(used[n.type]||0)+1});GATES.forEach(g=>{let max=levels[state.level].allowed[g]||0;let b=document.createElement('button');b.className='gateBtn';b.disabled=used[g]>=max;b.innerHTML=`${g}<strong>${used[g]||0}/${max}</strong>`;b.onclick=()=>addNode(g);p.appendChild(b)})}
+function addNode(type){let max=levels[state.level].allowed[type]||0;if(state.nodes.filter(n=>n.type===type).length>=max)return;let n={id:crypto.randomUUID(),type,x:30+Math.random()*500,y:30+Math.random()*220};state.nodes.push(n);render()}
+function setupIO(){let l=levels[state.level];for(let i=0;i<l.inputs;i++)state.nodes.push({id:'in'+i,type:'IN',index:i,x:15,y:35+i*80});state.nodes.push({id:'out',type:'OUT',x:canvas.clientWidth-130,y:145})}
+function render(){renderLevels();let l=levels[state.level];document.getElementById('levelName').textContent=`Level ${state.level+1}: ${l.name}`;document.getElementById('progress').textContent=`${state.level+1} / ${levels.length}`;document.getElementById('objective').textContent=l.objective;document.getElementById('available').textContent='Available gates: '+Object.entries(l.allowed).map(([g,n])=>`${n}× ${g}`).join(' · ');if(!state.nodes.length)setupIO();canvas.innerHTML='';state.wires.forEach(w=>drawWire(w));state.nodes.forEach(n=>drawNode(n));renderPalette()}
+function drawNode(n){let d=document.createElement('div');d.className='node'+(state.selected===n.id?' selected':'');d.dataset.type=n.type;d.style.left=n.x+'px';d.style.top=n.y+'px';d.innerHTML=n.type==='IN'?`INPUT ${String.fromCharCode(65+n.index)}<div class="ports">output</div>`:n.type==='OUT'?`OUTPUT<div class="ports">input</div>`:`${n.type}<div class="ports">input → output</div>`;d.onpointerdown=e=>dragNode(e,n,d);d.onclick=e=>{e.stopPropagation();if(state.selected&&state.selected!==n.id){connect(state.selected,n.id);state.selected=null;render()}else state.selected=n.id;render()};canvas.appendChild(d)}
+function dragNode(e,n,d){if(e.target!==d)return;let sx=e.clientX,sy=e.clientY,ox=n.x,oy=n.y;d.setPointerCapture(e.pointerId);d.onpointermove=ev=>{n.x=Math.max(0,ox+ev.clientX-sx);n.y=Math.max(0,oy+ev.clientY-sy);d.style.left=n.x+'px';d.style.top=n.y+'px';};d.onpointerup=()=>{d.onpointermove=null;render()}}
+function connect(a,b){if(a===b)return;state.wires=state.wires.filter(w=>!(w.from===a&&w.to===b));state.wires.push({from:a,to:b})}
+function clearSelection(){state.selected=null;render()}
+function drawWire(w){let a=state.nodes.find(n=>n.id===w.from),b=state.nodes.find(n=>n.id===w.to);if(!a||!b)return;let x1=a.x+110,y1=a.y+32,x2=b.x,y2=b.y+32;let dx=x2-x1,dy=y2-y1,len=Math.hypot(dx,dy),d=document.createElement('div');d.className='wire';d.style.left=x1+'px';d.style.top=y1+'px';d.style.width=len+'px';d.style.transform=`rotate(${Math.atan2(dy,dx)}rad)`;canvas.appendChild(d)}
+function simulate(bits){let nodes=state.nodes, memo={};function val(id){if(memo[id]!==undefined)return memo[id];let n=nodes.find(x=>x.id===id);if(!n)throw Error('missing');if(n.type==='IN')return memo[id]=!!bits[n.index];let incoming=state.wires.filter(w=>w.to===id).map(w=>val(w.from));if(n.type==='OUT')return memo[id]=!!incoming[0];if(n.type==='NOT')return memo[id]=!incoming[0];if(incoming.length<(n.type==='NOT'?1:2))throw Error('unconnected');return memo[id]=gateEval(n.type,incoming[0],incoming[1])}return !!val('out')}
+function testMachine(){let l=levels[state.level],rows=[],ok=true;for(let mask=0;mask<(1<<l.inputs);mask++){let bits=[];for(let i=0;i<l.inputs;i++)bits.push(!!(mask&(1<<(l.inputs-1-i))));let got;try{got=simulate(bits)}catch(e){got=null}let expected=!!l.target[mask];if(got!==expected)ok=false;rows.push({bits,got,expected})}document.getElementById('truth').innerHTML='<table><tr>'+Array.from({length:l.inputs},(_,i)=>`<th>${String.fromCharCode(65+i)}</th>`).join('')+'<th>Expected</th><th>Output</th></tr>'+rows.map(r=>`<tr>${r.bits.map(fmt).map(x=>`<td>${x}</td>`).join('')}<td>${fmt(r.expected)}</td><td>${r.got===null?'—':fmt(r.got)}</td></tr>`).join('')+'</table>';let s=document.getElementById('status');if(ok){s.className='status good';s.textContent='✓ MACHINE COMPLIES. Level complete!';if(state.level<levels.length-1){state.level++;setTimeout(()=>loadLevel(state.level),700)}}else{s.className='status bad';s.textContent='✗ MACHINE DOES NOT COMPLY. Check the truth table and your connections.'}}
+canvas.onclick=()=>{state.selected=null;render()};render();
+</script>
+</body></html>
