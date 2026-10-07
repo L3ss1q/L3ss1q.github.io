@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>KEDO Feedback</title>
 
     <style>
@@ -118,13 +119,38 @@
             Tell us about it.
         </p>
 
+        <!--
+            WEB3FORMS
+            Replace YOUR_ACCESS_KEY with your Web3Forms access key.
+        -->
+
         <form
             id="feedbackForm"
-            action="YOUR_FORM_ENDPOINT_HERE"
+            action="https://api.web3forms.com/submit"
             method="POST"
         >
 
+            <input
+                type="hidden"
+                name="access_key"
+                value="YOUR_ACCESS_KEY"
+            >
+
+            <input
+                type="hidden"
+                name="subject"
+                value="KEDO Website Feedback"
+            >
+
+            <input
+                type="hidden"
+                name="from_name"
+                value="KEDO Feedback"
+            >
+
+
             <!-- Name -->
+
             <label for="name">
                 Name / username
                 <span class="optional">(optional)</span>
@@ -140,23 +166,44 @@
 
 
             <!-- Feedback type -->
+
             <label for="type">
                 Feedback type
             </label>
 
             <select id="type" name="type">
-                <option value="bug">Bug report</option>
-                <option value="feature">Feature request</option>
-                <option value="contribution">Contribution</option>
-                <option value="suggestion">Suggestion</option>
-                <option value="other">Other</option>
+
+                <option value="bug">
+                    Bug report
+                </option>
+
+                <option value="feature">
+                    Feature request
+                </option>
+
+                <option value="contribution">
+                    Contribution
+                </option>
+
+                <option value="suggestion">
+                    Suggestion
+                </option>
+
+                <option value="other">
+                    Other
+                </option>
+
             </select>
 
 
             <!-- Email -->
+
             <label for="email">
                 Email
-                <span id="emailRequired" class="optional">
+                <span
+                    id="emailRequired"
+                    class="optional"
+                >
                     (optional)
                 </span>
             </label>
@@ -175,6 +222,7 @@
 
 
             <!-- Message -->
+
             <label for="message">
                 Message
             </label>
@@ -189,6 +237,7 @@
 
 
             <!-- Submit -->
+
             <div class="bottom">
 
                 <span id="counter">
@@ -236,7 +285,7 @@
 
 
         /*
-         * Update the character counter.
+         * Character counter
          */
 
         message.addEventListener("input", function () {
@@ -248,7 +297,7 @@
 
 
         /*
-         * Contributions require an email address.
+         * Contributions require an email.
          */
 
         function updateEmailRequirement() {
@@ -287,6 +336,7 @@
             const text =
                 message.value.trim();
 
+
             if (text.length < 5) {
 
                 event.preventDefault();
@@ -297,6 +347,7 @@
                 message.focus();
 
                 return;
+
             }
 
 
@@ -313,32 +364,20 @@
                 email.focus();
 
                 return;
-            }
 
+            }
 
             /*
-             * If the form endpoint is still a placeholder,
-             * don't actually submit it.
+             * If validation succeeds, we DON'T preventDefault().
+             *
+             * The browser sends the form to Web3Forms.
              */
-
-            if (
-                form.action.includes(
-                    "YOUR_FORM_ENDPOINT_HERE"
-                )
-            ) {
-
-                event.preventDefault();
-
-                status.textContent =
-                    "The feedback form is ready, but its email service has not been connected yet.";
-
-            }
 
         });
 
 
         /*
-         * Initialize the form.
+         * Initialize.
          */
 
         updateEmailRequirement();
