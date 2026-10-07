@@ -38,6 +38,11 @@
             font-weight: bold;
         }
 
+        .optional {
+            font-weight: normal;
+            color: #888;
+        }
+
         input,
         select,
         textarea {
@@ -60,6 +65,12 @@
         select:focus,
         textarea:focus {
             outline: 2px solid #777;
+        }
+
+        .email-note {
+            color: #888;
+            font-size: 13px;
+            margin-top: 6px;
         }
 
         .bottom {
@@ -99,17 +110,24 @@
 <body>
 
     <main class="feedback-box">
+
         <h1>KEDO Feedback</h1>
 
         <p class="subtitle">
-            Found a bug? Have a feature idea? Tell us about it.
+            Found a bug? Have a feature idea? Want to contribute?
+            Tell us about it.
         </p>
 
-        <form id="feedbackForm">
+        <form
+            id="feedbackForm"
+            action="YOUR_FORM_ENDPOINT_HERE"
+            method="POST"
+        >
 
+            <!-- Name -->
             <label for="name">
                 Name / username
-                <span style="font-weight: normal;">(optional)</span>
+                <span class="optional">(optional)</span>
             </label>
 
             <input
@@ -120,6 +138,8 @@
                 placeholder="e.g. Oxsysgen_13"
             >
 
+
+            <!-- Feedback type -->
             <label for="type">
                 Feedback type
             </label>
@@ -127,10 +147,34 @@
             <select id="type" name="type">
                 <option value="bug">Bug report</option>
                 <option value="feature">Feature request</option>
+                <option value="contribution">Contribution</option>
                 <option value="suggestion">Suggestion</option>
                 <option value="other">Other</option>
             </select>
 
+
+            <!-- Email -->
+            <label for="email">
+                Email
+                <span id="emailRequired" class="optional">
+                    (optional)
+                </span>
+            </label>
+
+            <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="you@example.com"
+            >
+
+            <p class="email-note">
+                An email is required if you're submitting a contribution
+                so we can contact you about it.
+            </p>
+
+
+            <!-- Message -->
             <label for="message">
                 Message
             </label>
@@ -140,55 +184,165 @@
                 name="message"
                 maxlength="2000"
                 required
-                placeholder="Tell us what happened..."
+                placeholder="Tell us what happened or what you'd like to contribute..."
             ></textarea>
 
+
+            <!-- Submit -->
             <div class="bottom">
-                <span id="counter">0 / 2000</span>
+
+                <span id="counter">
+                    0 / 2000
+                </span>
 
                 <button type="submit">
                     Send feedback
                 </button>
+
             </div>
 
-            <div id="status"></div>
+            <div
+                id="status"
+                aria-live="polite"
+            ></div>
 
         </form>
+
     </main>
 
 
     <script>
-        const form = document.getElementById("feedbackForm");
-        const message = document.getElementById("message");
-        const counter = document.getElementById("counter");
-        const status = document.getElementById("status");
 
-        // Character counter
+        const form =
+            document.getElementById("feedbackForm");
+
+        const message =
+            document.getElementById("message");
+
+        const counter =
+            document.getElementById("counter");
+
+        const status =
+            document.getElementById("status");
+
+        const type =
+            document.getElementById("type");
+
+        const email =
+            document.getElementById("email");
+
+        const emailRequired =
+            document.getElementById("emailRequired");
+
+
+        /*
+         * Update the character counter.
+         */
+
         message.addEventListener("input", function () {
+
             counter.textContent =
                 message.value.length + " / 2000";
+
         });
 
 
-        // Form submission
-        form.addEventListener("submit", function (event) {
-            event.preventDefault();
+        /*
+         * Contributions require an email address.
+         */
 
-            const text = message.value.trim();
+        function updateEmailRequirement() {
+
+            if (type.value === "contribution") {
+
+                email.required = true;
+
+                emailRequired.textContent =
+                    "(required for contributions)";
+
+            } else {
+
+                email.required = false;
+
+                emailRequired.textContent =
+                    "(optional)";
+
+            }
+
+        }
+
+
+        type.addEventListener(
+            "change",
+            updateEmailRequirement
+        );
+
+
+        /*
+         * Validate before sending.
+         */
+
+        form.addEventListener("submit", function (event) {
+
+            const text =
+                message.value.trim();
 
             if (text.length < 5) {
+
+                event.preventDefault();
+
                 status.textContent =
                     "Please provide a little more detail.";
+
+                message.focus();
+
                 return;
             }
 
-            status.textContent =
-                "Feedback received! (Backend not connected yet.)";
 
-            form.reset();
+            if (
+                type.value === "contribution" &&
+                email.value.trim() === ""
+            ) {
 
-            counter.textContent = "0 / 2000";
+                event.preventDefault();
+
+                status.textContent =
+                    "An email address is required for contributions.";
+
+                email.focus();
+
+                return;
+            }
+
+
+            /*
+             * If the form endpoint is still a placeholder,
+             * don't actually submit it.
+             */
+
+            if (
+                form.action.includes(
+                    "YOUR_FORM_ENDPOINT_HERE"
+                )
+            ) {
+
+                event.preventDefault();
+
+                status.textContent =
+                    "The feedback form is ready, but its email service has not been connected yet.";
+
+            }
+
         });
+
+
+        /*
+         * Initialize the form.
+         */
+
+        updateEmailRequirement();
+
     </script>
 
 </body>
