@@ -1,0 +1,707 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Minesweeper</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #111;
+        color: white;
+        font-family: monospace;
+        text-align: center;
+        overflow: hidden;
+    }
+
+    h1 {
+        margin: 10px 0 4px;
+    }
+
+    #stats {
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+
+    #game {
+        width: min(95vw, 700px);
+        height: 70vh;
+        margin: auto;
+        overflow: auto;
+        background: #222;
+        border: 2px solid #555;
+    }
+
+    #grid {
+        position: relative;
+        margin: 0 auto;
+    }
+
+    .cell {
+        position: absolute;
+        width: 32px;
+        height: 32px;
+
+        border: 1px solid #444;
+        background: #888;
+
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        font-weight: bold;
+        font-size: 16px;
+
+        user-select: none;
+    }
+
+    .cell.revealed {
+        background: #ccc;
+        color: black;
+    }
+
+    .cell.flagged {
+        background: #d5b45c;
+    }
+
+    .cell.selected {
+        outline: 3px solid cyan;
+        z-index: 5;
+    }
+
+    .mine {
+        background: #d44 !important;
+    }
+
+    button,
+    input {
+        font: inherit;
+    }
+
+    #controls {
+        margin-top: 8px;
+    }
+
+    #controls button {
+        padding: 7px 12px;
+        margin: 2px;
+    }
+
+    #mobileControls {
+        display: none;
+        margin: 8px auto;
+        width: 210px;
+    }
+
+    #mobileControls button {
+        width: 60px;
+        height: 45px;
+        margin: 2px;
+        font-size: 20px;
+    }
+
+    #press {
+        width: 125px !important;
+    }
+
+    #settings {
+        margin: 8px;
+    }
+
+    #settings input {
+        width: 70px;
+    }
+
+    @media (max-width: 700px) {
+        #mobileControls {
+            display: block;
+        }
+
+        #game {
+            height: 58vh;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<h1>∞ MINESWEEPER</h1>
+
+<div id="stats">
+    Lives: <span id="lives">3</span> |
+    Mines: <span id="mineCount">0</span> |
+    World: <span id="worldSize">15×15</span>
+</div>
+
+<div id="settings">
+    Mine frequency / 9×9:
+    <input id="frequency" type="number" min="0" step="0.1" value="10">
+
+    Lives:
+    <input id="startingLives" type="number" min="1" value="3">
+
+    <button onclick="restart()">Restart</button>
+</div>
+
+<div id="game">
+    <div id="grid"></div>
+</div>
+
+<div id="controls">
+    <button onclick="restart()">New Game</button>
+</div>
+
+<!-- Mobile controls -->
+<div id="mobileControls">
+
+    <div>
+        <button onclick="moveSelector(0, -1)">▲</button>
+    </div>
+
+    <div>
+        <button onclick="moveSelector(-1, 0)">◀</button>
+        <button id="press" onclick="pressSelected()">PRESS</button>
+        <button onclick="moveSelector(1, 0)">▶</button>
+    </div>
+
+    <div>
+        <button onclick="moveSelector(0, 1)">▼</button>
+    </div>
+
+    <div>
+        <button onclick="flagSelected()">🚩 FLAG</button>
+    </div>
+
+</div>
+
+<script>
+/*
+    INFINITE MINESWEEPER
+
+    Coordinates are infinite integers.
+
+    A cell is stored as:
+        {
+            mine: true/false,
+            revealed: true/false,
+            flagged: true/false
+        }
+
+    The game only creates cells when they are needed.
+*/
+
+const grid = document.getElementById("grid");
+const game = document.getElementById("game");
+
+const livesDisplay = document.getElementById("lives");
+const mineDisplay = document.getElementById("mineCount");
+const worldDisplay = document.getElementById("worldSize");
+
+const frequencyInput = document.getElementById("frequency");
+const startingLivesInput = document.getElementById("startingLives");
+
+const CELL_SIZE = 32;
+
+/* How far around the player we currently generate */
+let renderRadius = 7;
+
+/* Current generated world bounds */
+let minX = -7;
+let maxX = 7;
+let minY = -7;
+let maxY = 7;
+
+/* All generated cells */
+const cells = new Map();
+
+/* Game state */
+let lives = 3;
+let mineCount = 0;
+let gameOver = false;
+
+/* Mobile selector */
+let selectorX = 0;
+let selectorY = 0;
+
+
+/* ---------------------------------------------------------
+   RANDOM / CELL GENERATION
+--------------------------------------------------------- */
+
+function key(x, y) {
+    return `${x},${y}`;
+}
+
+function getCell(x, y) {
+
+    const k = key(x, y);
+
+    if (!cells.has(k)) {
+
+        /*
+            Frequency means average mines per 9×9 area.
+
+            9×9 = 81 cells.
+
+            Example:
+                frequency = 10
+                chance ≈ 10 / 81
+        */
+
+        const frequency = Number(frequencyInput.value) || 0;
+
+        const chance = Math.min(1, frequency / 81);
+
+        const cell = {
+            x: x,
+            y: y,
+            mine: Math.random() < chance,
+            revealed: false,
+            flagged: false
+        };
+
+        cells.set(k, cell);
+
+        if (cell.mine) {
+            mineCount++;
+        }
+    }
+
+    return cells.get(k);
+}
+
+
+/* ---------------------------------------------------------
+   GRID RENDERING
+--------------------------------------------------------- */
+
+function render() {
+
+    grid.innerHTML = "";
+
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+
+    grid.style.width = `${width * CELL_SIZE}px`;
+    grid.style.height = `${height * CELL_SIZE}px`;
+
+    for (let y = minY; y <= maxY; y++) {
+
+        for (let x = minX; x <= maxX; x++) {
+
+            const cell = getCell(x, y);
+
+            const element = document.createElement("div");
+
+            element.className = "cell";
+
+            element.style.left =
+                `${(x - minX) * CELL_SIZE}px`;
+
+            element.style.top =
+                `${(y - minY) * CELL_SIZE}px`;
+
+            if (cell.revealed) {
+
+                element.classList.add("revealed");
+
+                if (cell.mine) {
+
+                    element.textContent = "💣";
+                    element.classList.add("mine");
+
+                } else {
+
+                    const count = countMines(x, y);
+
+                    if (count > 0) {
+                        element.textContent = count;
+                    }
+                }
+
+            } else if (cell.flagged) {
+
+                element.textContent = "🚩";
+                element.classList.add("flagged");
+            }
+
+            /* Mobile selector */
+
+            if (x === selectorX && y === selectorY) {
+                element.classList.add("selected");
+            }
+
+            /*
+                PC controls
+            */
+
+            element.addEventListener("click", function(e) {
+                reveal(x, y);
+            });
+
+            element.addEventListener("contextmenu", function(e) {
+
+                e.preventDefault();
+
+                flag(x, y);
+            });
+
+            grid.appendChild(element);
+        }
+    }
+
+    livesDisplay.textContent = lives;
+    mineDisplay.textContent = mineCount;
+
+    worldDisplay.textContent =
+        `${width}×${height}`;
+}
+
+
+/* ---------------------------------------------------------
+   MINE COUNT
+--------------------------------------------------------- */
+
+function countMines(x, y) {
+
+    let count = 0;
+
+    for (let dy = -1; dy <= 1; dy++) {
+
+        for (let dx = -1; dx <= 1; dx++) {
+
+            if (dx === 0 && dy === 0)
+                continue;
+
+            const cell = getCell(x + dx, y + dy);
+
+            if (cell.mine)
+                count++;
+        }
+    }
+
+    return count;
+}
+
+
+/* ---------------------------------------------------------
+   REVEAL
+--------------------------------------------------------- */
+
+function reveal(x, y) {
+
+    if (gameOver)
+        return;
+
+    const cell = getCell(x, y);
+
+    if (cell.flagged || cell.revealed)
+        return;
+
+    cell.revealed = true;
+
+    if (cell.mine) {
+
+        lives--;
+
+        /*
+            You can survive hitting mines.
+        */
+
+        if (lives <= 0) {
+
+            gameOver = true;
+
+            alert("💣 GAME OVER");
+
+        }
+
+        render();
+        return;
+    }
+
+    /*
+        Empty-cell flood fill.
+    */
+
+    if (countMines(x, y) === 0) {
+
+        floodReveal(x, y);
+    }
+
+    /*
+        If the player reaches the edge,
+        expand the generated world.
+    */
+
+    if (
+        x <= minX + 2 ||
+        x >= maxX - 2 ||
+        y <= minY + 2 ||
+        y >= maxY - 2
+    ) {
+        expandWorld();
+    }
+
+    render();
+}
+
+
+/* ---------------------------------------------------------
+   FLOOD REVEAL
+--------------------------------------------------------- */
+
+function floodReveal(startX, startY) {
+
+    const queue = [[startX, startY]];
+    const visited = new Set();
+
+    while (queue.length > 0) {
+
+        const [x, y] = queue.shift();
+        const k = key(x, y);
+
+        if (visited.has(k))
+            continue;
+
+        visited.add(k);
+
+        const cell = getCell(x, y);
+
+        if (cell.mine || cell.flagged)
+            continue;
+
+        cell.revealed = true;
+
+        if (countMines(x, y) === 0) {
+
+            for (let dy = -1; dy <= 1; dy++) {
+
+                for (let dx = -1; dx <= 1; dx++) {
+
+                    if (dx === 0 && dy === 0)
+                        continue;
+
+                    queue.push([
+                        x + dx,
+                        y + dy
+                    ]);
+                }
+            }
+        }
+    }
+}
+
+
+/* ---------------------------------------------------------
+   FLAGS
+--------------------------------------------------------- */
+
+function flag(x, y) {
+
+    if (gameOver)
+        return;
+
+    const cell = getCell(x, y);
+
+    if (cell.revealed)
+        return;
+
+    cell.flagged = !cell.flagged;
+
+    render();
+}
+
+
+/* ---------------------------------------------------------
+   WORLD EXPANSION
+--------------------------------------------------------- */
+
+function expandWorld() {
+
+    minX -= renderRadius;
+    maxX += renderRadius;
+
+    minY -= renderRadius;
+    maxY += renderRadius;
+
+    /*
+        Generate the new outer region.
+    */
+
+    for (let y = minY; y <= maxY; y++) {
+
+        for (let x = minX; x <= maxX; x++) {
+
+            getCell(x, y);
+        }
+    }
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE SELECTOR
+--------------------------------------------------------- */
+
+function moveSelector(dx, dy) {
+
+    if (gameOver)
+        return;
+
+    selectorX += dx;
+    selectorY += dy;
+
+    /*
+        Expand automatically when selector
+        approaches the edge.
+    */
+
+    if (
+        selectorX <= minX + 3 ||
+        selectorX >= maxX - 3 ||
+        selectorY <= minY + 3 ||
+        selectorY >= maxY - 3
+    ) {
+        expandWorld();
+    }
+
+    render();
+
+    /*
+        Try to keep selected cell visible.
+    */
+
+    const left =
+        (selectorX - minX) * CELL_SIZE;
+
+    const top =
+        (selectorY - minY) * CELL_SIZE;
+
+    game.scrollLeft =
+        left - game.clientWidth / 2;
+
+    game.scrollTop =
+        top - game.clientHeight / 2;
+}
+
+
+function pressSelected() {
+
+    reveal(selectorX, selectorY);
+}
+
+
+function flagSelected() {
+
+    flag(selectorX, selectorY);
+}
+
+
+/* ---------------------------------------------------------
+   RESTART
+--------------------------------------------------------- */
+
+function restart() {
+
+    cells.clear();
+
+    mineCount = 0;
+
+    lives =
+        Math.max(
+            1,
+            Number(startingLivesInput.value) || 3
+        );
+
+    gameOver = false;
+
+    renderRadius = 7;
+
+    minX = -renderRadius;
+    maxX = renderRadius;
+
+    minY = -renderRadius;
+    maxY = renderRadius;
+
+    selectorX = 0;
+    selectorY = 0;
+
+    render();
+
+    /*
+        Center the starting position.
+    */
+
+    setTimeout(() => {
+
+        game.scrollLeft =
+            game.scrollWidth / 2 -
+            game.clientWidth / 2;
+
+        game.scrollTop =
+            game.scrollHeight / 2 -
+            game.clientHeight / 2;
+
+    }, 0);
+}
+
+
+/* ---------------------------------------------------------
+   KEYBOARD SUPPORT
+--------------------------------------------------------- */
+
+document.addEventListener("keydown", function(e) {
+
+    /*
+        On PC, arrow keys also move the selector.
+        This is useful for testing the mobile controls.
+    */
+
+    if (e.key === "ArrowUp") {
+        e.preventDefault();
+        moveSelector(0, -1);
+    }
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        moveSelector(0, 1);
+    }
+
+    if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        moveSelector(-1, 0);
+    }
+
+    if (e.key === "ArrowRight") {
+        e.preventDefault();
+        moveSelector(1, 0);
+    }
+
+    if (e.key === "Enter") {
+        pressSelected();
+    }
+
+    if (e.key.toLowerCase() === "f") {
+        flagSelected();
+    }
+});
+
+
+/* ---------------------------------------------------------
+   START
+--------------------------------------------------------- */
+
+restart();
+
+</script>
+
+</body>
+</html>
+```
