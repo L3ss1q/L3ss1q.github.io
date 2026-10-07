@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEDO Feedback</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .feedback-box {
+            max-width: 650px;
+            margin: auto;
+            background: #1b1b1b;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 25px;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .subtitle {
+            color: #aaa;
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #555;
+            border-radius: 7px;
+            background: #111;
+            color: #eee;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: 2px solid #777;
+        }
+
+        .bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        #counter {
+            color: #888;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 7px;
+            background: #eee;
+            color: #111;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #ccc;
+        }
+
+        #status {
+            margin-top: 15px;
+            color: #aaa;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="feedback-box">
+        <h1>KEDO Feedback</h1>
+
+        <p class="subtitle">
+            Found a bug? Have a feature idea? Tell us about it.
+        </p>
+
+        <form id="feedbackForm">
+
+            <label for="name">
+                Name / username
+                <span style="font-weight: normal;">(optional)</span>
+            </label>
+
+            <input
+                type="text"
+                id="name"
+                name="name"
+                maxlength="60"
+                placeholder="e.g. Oxsysgen_13"
+            >
+
+            <label for="type">
+                Feedback type
+            </label>
+
+            <select id="type" name="type">
+                <option value="bug">Bug report</option>
+                <option value="feature">Feature request</option>
+                <option value="suggestion">Suggestion</option>
+                <option value="other">Other</option>
+            </select>
+
+            <label for="message">
+                Message
+            </label>
+
+            <textarea
+                id="message"
+                name="message"
+                maxlength="2000"
+                required
+                placeholder="Tell us what happened..."
+            ></textarea>
+
+            <div class="bottom">
+                <span id="counter">0 / 2000</span>
+
+                <button type="submit">
+                    Send feedback
+                </button>
+            </div>
+
+            <div id="status"></div>
+
+        </form>
+    </main>
+
+
+    <script>
+        const form = document.getElementById("feedbackForm");
+        const message = document.getElementById("message");
+        const counter = document.getElementById("counter");
+        const status = document.getElementById("status");
+
+        // Character counter
+        message.addEventListener("input", function () {
+            counter.textContent =
+                message.value.length + " / 2000";
+        });
+
+
+        // Form submission
+        form.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const text = message.value.trim();
+
+            if (text.length < 5) {
+                status.textContent =
+                    "Please provide a little more detail.";
+                return;
+            }
+
+            status.textContent =
+                "Feedback received! (Backend not connected yet.)";
+
+            form.reset();
+
+            counter.textContent = "0 / 2000";
+        });
+    </script>
+
+</body>
+</html>
