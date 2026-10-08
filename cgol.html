@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Conway's Game of Life</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        background: #111;
+        color: #eee;
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+
+    header {
+        padding: 20px 10px 10px;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+
+    #subtitle {
+        color: #aaa;
+        margin-top: 6px;
+    }
+
+    #controls {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    button {
+        border: 1px solid #555;
+        background: #222;
+        color: white;
+        padding: 9px 14px;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    button:hover {
+        background: #333;
+    }
+
+    button:active {
+        transform: scale(0.97);
+    }
+
+    #stats {
+        margin: 5px 0 12px;
+        color: #bbb;
+    }
+
+    #gameWrapper {
+        width: min(95vw, 900px);
+        height: min(70vh, 650px);
+        margin: auto;
+        overflow: auto;
+        border: 2px solid #444;
+        background: #080808;
+        touch-action: none;
+    }
+
+    canvas {
+        display: block;
+        cursor: crosshair;
+    }
+
+    #help {
+        max-width: 700px;
+        margin: 15px auto 30px;
+        padding: 0 15px;
+        color: #888;
+        line-height: 1.5;
+    }
+
+    input[type="range"] {
+        width: 130px;
+        vertical-align: middle;
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>🟩 Conway's Game of Life</h1>
+    <div id="subtitle">Tiny digital organisms. Absolutely no supervision.</div>
+</header>
+
+<div id="controls">
+    <button id="startBtn">▶ Start</button>
+    <button id="stepBtn">⏭ Step</button>
+    <button id="randomBtn">🎲 Randomize</button>
+    <button id="clearBtn">🗑 Clear</button>
+    <button id="gliderBtn">🚀 Glider</button>
+    <button id="pulsarBtn">💫 Pulsar</button>
+
+    <label>
+        Speed
+        <input id="speedSlider" type="range" min="1" max="20" value="10">
+    </label>
+</div>
+
+<div id="stats">
+    Generation: <b id="generation">0</b>
+    &nbsp;|&nbsp;
+    Population: <b id="population">0</b>
+</div>
+
+<div id="gameWrapper">
+    <canvas id="game"></canvas>
+</div>
+
+<div id="help">
+    Click or drag to create cells.<br>
+    The rules are simple: a cell survives with 2–3 neighbors,
+    and a dead cell is born with exactly 3 neighbors.<br><br>
+    Then watch your tiny civilization completely lose its mind.
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const wrapper = document.getElementById("gameWrapper");
+
+const generationText = document.getElementById("generation");
+const populationText = document.getElementById("population");
+
+const startBtn = document.getElementById("startBtn");
+const stepBtn = document.getElementById("stepBtn");
+const randomBtn = document.getElementById("randomBtn");
+const clearBtn = document.getElementById("clearBtn");
+const gliderBtn = document.getElementById("gliderBtn");
+const pulsarBtn = document.getElementById("pulsarBtn");
+const speedSlider = document.getElementById("speedSlider");
+
+const CELL_SIZE = 12;
+
+let cols = 70;
+let rows = 50;
+
+let grid = [];
+let generation = 0;
+let running = false;
+let timer = null;
+
+let drawing = false;
+let drawValue = true;
+
+function createGrid() {
+    grid = [];
+
+    for (let y = 0; y < rows; y++) {
+        grid[y] = [];
+
+        for (let x = 0; x < cols; x++) {
+            grid[y][x] = false;
+        }
+    }
+}
+
+function resizeCanvas() {
+    canvas.width = cols * CELL_SIZE;
+    canvas.height = rows * CELL_SIZE;
+
+    draw();
+}
+
+function draw() {
+    ctx.fillStyle = "#080808";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+
+            if (grid[y][x]) {
+                ctx.fillStyle = "#65ff65";
+
+                ctx.fillRect(
+                    x * CELL_SIZE + 1,
+                    y * CELL_SIZE + 1,
+                    CELL_SIZE - 2,
+                    CELL_SIZE - 2
+                );
+            }
+        }
+    }
+
+    ctx.strokeStyle = "#202020";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= cols; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * CELL_SIZE, 0);
+        ctx.lineTo(x * CELL_SIZE, canvas.height);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= rows; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * CELL_SIZE);
+        ctx.lineTo(canvas.width, y * CELL_SIZE);
+        ctx.stroke();
+    }
+
+    updateStats();
+}
+
+function updateStats() {
+    let population = 0;
+
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            if (grid[y][x]) {
+                population++;
+            }
+        }
+    }
+
+    generationText.textContent = generation;
+    populationText.textContent = population;
+}
+
+function countNeighbors(x, y) {
+    let count = 0;
+
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+
+            if (dx === 0 && dy === 0) {
+                continue;
+            }
+
+            const nx = x + dx;
+            const ny = y + dy;
+
+            if (
+                nx >= 0 &&
+                nx < cols &&
+                ny >= 0 &&
+                ny < rows &&
+                grid[ny][nx]
+            ) {
+                count++;
+            }
+        }
+    }
+
+    return count;
+}
+
+function step() {
+    const next = [];
+
+    for (let y = 0; y < rows; y++) {
+        next[y] = [];
+
+        for (let x = 0; x < cols; x++) {
+
+            const neighbors = countNeighbors(x, y);
+
+            if (grid[y][x]) {
+                next[y][x] =
+                    neighbors === 2 ||
+                    neighbors === 3;
+            } else {
+                next[y][x] =
+                    neighbors === 3;
+            }
+        }
+    }
+
+    grid = next;
+    generation++;
+
+    draw();
+}
+
+function randomize() {
+    stop();
+
+    generation = 0;
+
+    for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+            grid[y][x] = Math.random() < 0.25;
+        }
+    }
+
+    draw();
+}
+
+function clear() {
+    stop();
+
+    generation = 0;
+    createGrid();
+    draw();
+}
+
+function start() {
+    if (running) return;
+
+    running = true;
+    startBtn.textContent = "⏸ Stop";
+
+    const tick = () => {
+        if (!running) return;
+
+        step();
+
+        const speed = Number(speedSlider.value);
+
+        // Higher slider = faster
+        const delay = 1000 / speed;
+
+        timer = setTimeout(tick, delay);
+    };
+
+    tick();
+}
+
+function stop() {
+    running = false;
+
+    startBtn.textContent = "▶ Start";
+
+    if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+    }
+}
+
+function toggleRunning() {
+    if (running) {
+        stop();
+    } else {
+        start();
+    }
+}
+
+function getCellFromEvent(event) {
+    const rect = canvas.getBoundingClientRect();
+
+    const x = Math.floor(
+        (event.clientX - rect.left) / CELL_SIZE
+    );
+
+    const y = Math.floor(
+        (event.clientY - rect.top) / CELL_SIZE
+    );
+
+    return { x, y };
+}
+
+function paint(event) {
+    const { x, y } = getCellFromEvent(event);
+
+    if (
+        x < 0 ||
+        x >= cols ||
+        y < 0 ||
+        y >= rows
+    ) {
+        return;
+    }
+
+    grid[y][x] = drawValue;
+
+    draw();
+}
+
+canvas.addEventListener("pointerdown", event => {
+    event.preventDefault();
+
+    drawing = true;
+
+    const { x, y } = getCellFromEvent(event);
+
+    if (
+        x >= 0 &&
+        x < cols &&
+        y >= 0 &&
+        y < rows
+    ) {
+        drawValue = !grid[y][x];
+        grid[y][x] = drawValue;
+
+        draw();
+    }
+
+    canvas.setPointerCapture(event.pointerId);
+});
+
+canvas.addEventListener("pointermove", event => {
+    if (!drawing) return;
+
+    paint(event);
+});
+
+canvas.addEventListener("pointerup", () => {
+    drawing = false;
+});
+
+canvas.addEventListener("pointercancel", () => {
+    drawing = false;
+});
+
+startBtn.addEventListener("click", toggleRunning);
+stepBtn.addEventListener("click", step);
+randomBtn.addEventListener("click", randomize);
+clearBtn.addEventListener("click", clear);
+
+function placePattern(pattern, centerX, centerY) {
+    for (let y = 0; y < pattern.length; y++) {
+        for (let x = 0; x < pattern[y].length; x++) {
+
+            if (pattern[y][x]) {
+
+                const gx =
+                    centerX +
+                    x -
+                    Math.floor(pattern[y].length / 2);
+
+                const gy =
+                    centerY +
+                    y -
+                    Math.floor(pattern.length / 2);
+
+                if (
+                    gx >= 0 &&
+                    gx < cols &&
+                    gy >= 0 &&
+                    gy < rows
+                ) {
+                    grid[gy][gx] = true;
+                }
+            }
+        }
+    }
+
+    draw();
+}
+
+gliderBtn.addEventListener("click", () => {
+
+    stop();
+
+    const glider = [
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 1, 1]
+    ];
+
+    placePattern(
+        glider,
+        Math.floor(cols / 2),
+        Math.floor(rows / 2)
+    );
+});
+
+pulsarBtn.addEventListener("click", () => {
+
+    stop();
+
+    const pulsar = [
+        [0,0,1,1,1,0,0,0,0,1,1,1,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [0,0,1,1,1,0,0,0,0,1,1,1,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,1,1,1,0,0,0,0,1,1,1,0],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [1,0,0,0,0,1,0,0,0,1,0,0,1],
+        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,1,1,1,0,0,0,0,1,1,1,0]
+    ];
+
+    placePattern(
+        pulsar,
+        Math.floor(cols / 2),
+        Math.floor(rows / 2)
+    );
+});
+
+speedSlider.addEventListener("input", () => {
+    if (running) {
+        stop();
+        start();
+    }
+});
+
+createGrid();
+resizeCanvas();
+draw();
+</script>
+
+</body>
+</html>
