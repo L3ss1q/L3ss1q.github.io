@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEDO: Stock Chaos</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: monospace;
+        background: #111;
+        color: #eee;
+    }
+
+    header {
+        background: #222;
+        padding: 15px;
+        border-bottom: 2px solid #555;
+        text-align: center;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 26px;
+    }
+
+    #subtitle {
+        color: #aaa;
+        margin-top: 5px;
+    }
+
+    .topbar {
+        display: flex;
+        justify-content: space-around;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px;
+        background: #181818;
+        border-bottom: 1px solid #444;
+    }
+
+    .stat {
+        padding: 8px 15px;
+        background: #252525;
+        border: 1px solid #444;
+        border-radius: 5px;
+    }
+
+    #timer {
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    main {
+        display: grid;
+        grid-template-columns: 280px 1fr 280px;
+        gap: 15px;
+        padding: 15px;
+        max-width: 1400px;
+        margin: auto;
+    }
+
+    .panel {
+        background: #1b1b1b;
+        border: 1px solid #444;
+        border-radius: 7px;
+        padding: 12px;
+    }
+
+    .panel h2 {
+        margin-top: 0;
+        font-size: 18px;
+    }
+
+    .stock {
+        padding: 10px;
+        margin-bottom: 8px;
+        background: #252525;
+        border: 1px solid #444;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    .stock:hover {
+        background: #303030;
+    }
+
+    .stock.selected {
+        border: 2px solid white;
+    }
+
+    .stock-name {
+        font-weight: bold;
+    }
+
+    .stock-price {
+        font-size: 20px;
+        margin-top: 5px;
+    }
+
+    .up {
+        color: #55ff77;
+    }
+
+    .down {
+        color: #ff5555;
+    }
+
+    #chart {
+        width: 100%;
+        height: 350px;
+        background: #101010;
+        border: 1px solid #444;
+        display: block;
+    }
+
+    #selectedStock {
+        font-size: 24px;
+        margin-bottom: 5px;
+    }
+
+    #selectedPrice {
+        font-size: 20px;
+        color: #aaa;
+    }
+
+    .controls {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    input {
+        background: #111;
+        color: white;
+        border: 1px solid #555;
+        padding: 10px;
+        width: 100px;
+        font-family: monospace;
+    }
+
+    button {
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        padding: 10px 18px;
+        font-family: monospace;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+
+    button:hover {
+        background: #444;
+    }
+
+    button:active {
+        transform: translateY(1px);
+    }
+
+    .buy {
+        border-color: #55ff77;
+    }
+
+    .sell {
+        border-color: #ff5555;
+    }
+
+    .holding {
+        padding: 8px;
+        border-bottom: 1px solid #333;
+    }
+
+    #news {
+        height: 250px;
+        overflow-y: auto;
+        font-size: 13px;
+    }
+
+    .news-item {
+        padding: 7px;
+        border-bottom: 1px solid #333;
+    }
+
+    #gameOver {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.92);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        z-index: 100;
+    }
+
+    #gameOverBox {
+        background: #202020;
+        border: 2px solid #777;
+        padding: 30px;
+        max-width: 450px;
+        width: 90%;
+        border-radius: 8px;
+    }
+
+    #finalScore {
+        font-size: 28px;
+        margin: 15px;
+    }
+
+    @media (max-width: 900px) {
+        main {
+            grid-template-columns: 1fr;
+        }
+
+        #chart {
+            height: 280px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>📈 KEDO STOCK CHAOS</h1>
+    <div id="subtitle">
+        The completely fictional economy is having a normal day.
+    </div>
+</header>
+
+<div class="topbar">
+    <div class="stat">
+        CASH: $<span id="cash">10000.00</span>
+    </div>
+
+    <div class="stat">
+        NET WORTH: $<span id="netWorth">10000.00</span>
+    </div>
+
+    <div class="stat">
+        PROFIT: $<span id="profit">0.00</span>
+    </div>
+
+    <div class="stat">
+        TIME:
+        <span id="timer">5:00</span>
+    </div>
+</div>
+
+<main>
+
+    <!-- STOCK LIST -->
+    <section class="panel">
+        <h2>MARKET</h2>
+        <div id="stockList"></div>
+    </section>
+
+    <!-- CHART -->
+    <section class="panel">
+
+        <div id="selectedStock">KEDO</div>
+        <div id="selectedPrice">$100.00</div>
+
+        <br>
+
+        <canvas id="chart"></canvas>
+
+        <div class="controls">
+            <input
+                type="number"
+                id="quantity"
+                min="1"
+                value="1"
+            >
+
+            <button class="buy" onclick="buyStock()">
+                BUY
+            </button>
+
+            <button class="sell" onclick="sellStock()">
+                SELL
+            </button>
+        </div>
+
+        <p>
+            Shares owned:
+            <span id="sharesOwned">0</span>
+        </p>
+
+    </section>
+
+    <!-- PORTFOLIO -->
+    <section class="panel">
+
+        <h2>PORTFOLIO</h2>
+
+        <div id="portfolio"></div>
+
+        <hr>
+
+        <h2>NEWS</h2>
+
+        <div id="news"></div>
+
+    </section>
+
+</main>
+
+<div id="gameOver">
+
+    <div id="gameOverBox">
+
+        <h1>MARKET CLOSED</h1>
+
+        <p>
+            The 5-minute chaos session has ended.
+        </p>
+
+        <div id="finalScore"></div>
+
+        <button onclick="location.reload()">
+            PLAY AGAIN
+        </button>
+
+    </div>
+
+</div>
+
+<script>
+
+const STARTING_CASH = 10000;
+const GAME_LENGTH = 300;
+
+let cash = STARTING_CASH;
+let timeLeft = GAME_LENGTH;
+let gameRunning = true;
+
+let selectedStock = "KEDO";
+
+const stocks = {
+
+    KEDO: {
+        name: "KEDO",
+        price: 100,
+        history: [100],
+        owned: 0,
+        volatility: 2.0
+    },
+
+    TECS: {
+        name: "TECS",
+        price: 75,
+        history: [75],
+        owned: 0,
+        volatility: 1.5
+    },
+
+    LUCY: {
+        name: "LUCY",
+        price: 120,
+        history: [120],
+        owned: 0,
+        volatility: 2.5
+    },
+
+    ROBU: {
+        name: "ROBU",
+        price: 45,
+        history: [45],
+        owned: 0,
+        volatility: 3.0
+    },
+
+    CHEZ: {
+        name: "CHEZ",
+        price: 30,
+        history: [30],
+        owned: 0,
+        volatility: 4.0
+    },
+
+    PIXL: {
+        name: "PIXL",
+        price: 200,
+        history: [200],
+        owned: 0,
+        volatility: 1.2
+    }
+};
+
+
+// -------------------------
+// STOCK PRICE MOVEMENT
+// -------------------------
+
+function updatePrices() {
+
+    if (!gameRunning)
+        return;
+
+    for (let symbol in stocks) {
+
+        let stock = stocks[symbol];
+
+        let movement =
+            (Math.random() - 0.5)
+            * stock.volatility;
+
+        stock.price += movement;
+
+        // Don't allow stocks to hit zero.
+        if (stock.price < 1)
+            stock.price = 1;
+
+        stock.history.push(stock.price);
+
+        // Keep chart history manageable.
+        if (stock.history.length > 100)
+            stock.history.shift();
+    }
+
+    render();
+
+    // Random news event.
+    if (Math.random() < 0.03)
+        randomEvent();
+}
+
+
+// -------------------------
+// BUY
+// -------------------------
+
+function buyStock() {
+
+    if (!gameRunning)
+        return;
+
+    let amount =
+        parseInt(document.getElementById("quantity").value);
+
+    if (isNaN(amount) || amount <= 0)
+        return;
+
+    let stock = stocks[selectedStock];
+
+    let cost = stock.price * amount;
+
+    if (cost > cash) {
+
+        addNews(
+            "❌ Insufficient funds. Capitalism says no."
+        );
+
+        return;
+    }
+
+    cash -= cost;
+    stock.owned += amount;
+
+    addNews(
+        `🛒 Bought ${amount} ${selectedStock} share(s).`
+    );
+
+    render();
+}
+
+
+// -------------------------
+// SELL
+// -------------------------
+
+function sellStock() {
+
+    if (!gameRunning)
+        return;
+
+    let amount =
+        parseInt(document.getElementById("quantity").value);
+
+    if (isNaN(amount) || amount <= 0)
+        return;
+
+    let stock = stocks[selectedStock];
+
+    if (amount > stock.owned) {
+
+        addNews(
+            "❌ You don't own that many shares."
+        );
+
+        return;
+    }
+
+    let revenue = stock.price * amount;
+
+    stock.owned -= amount;
+    cash += revenue;
+
+    addNews(
+        `💰 Sold ${amount} ${selectedStock} share(s).`
+    );
+
+    render();
+}
+
+
+// -------------------------
+// RANDOM MARKET EVENTS
+// -------------------------
+
+const events = [
+
+    {
+        text: "🧀 KEDO has discovered cheese.",
+        target: "KEDO",
+        multiplier: 1.15
+    },
+
+    {
+        text: "💥 ROBU accidentally deleted production.",
+        target: "ROBU",
+        multiplier: 0.75
+    },
+
+    {
+        text: "🎵 TECS has released a suspiciously catchy song.",
+        target: "TECS",
+        multiplier: 1.12
+    },
+
+    {
+        text: "🖥️ PIXL computer has crashed.",
+        target: "PIXL",
+        multiplier: 0.82
+    },
+
+    {
+        text: "🚀 LUCY stock has become extremely confusing.",
+        target: "LUCY",
+        multiplier: 1.18
+    },
+
+    {
+        text: "🥖 CHEZ has acquired several baguettes.",
+        target: "CHEZ",
+        multiplier: 1.25
+    }
+
+];
+
+
+function randomEvent() {
+
+    let event =
+        events[Math.floor(Math.random() * events.length)];
+
+    let stock = stocks[event.target];
+
+    stock.price *= event.multiplier;
+
+    stock.history.push(stock.price);
+
+    addNews(event.text);
+}
+
+
+// -------------------------
+// NEWS
+// -------------------------
+
+function addNews(message) {
+
+    let news =
+        document.getElementById("news");
+
+    let item =
+        document.createElement("div");
+
+    item.className = "news-item";
+
+    item.textContent =
+        `[${formatTime(timeLeft)}] ${message}`;
+
+    news.prepend(item);
+
+}
+
+
+// -------------------------
+// SELECT STOCK
+// -------------------------
+
+function selectStock(symbol) {
+
+    selectedStock = symbol;
+
+    render();
+}
+
+
+// -------------------------
+// RENDER STOCK LIST
+// -------------------------
+
+function renderStocks() {
+
+    let container =
+        document.getElementById("stockList");
+
+    container.innerHTML = "";
+
+    for (let symbol in stocks) {
+
+        let stock = stocks[symbol];
+
+        let previous =
+            stock.history.length > 1
+            ? stock.history[stock.history.length - 2]
+            : stock.price;
+
+        let direction =
+            stock.price >= previous
+            ? "up"
+            : "down";
+
+        let div =
+            document.createElement("div");
+
+        div.className =
+            "stock " +
+            (selectedStock === symbol
+                ? "selected"
+                : "");
+
+        div.onclick =
+            () => selectStock(symbol);
+
+        div.innerHTML = `
+            <div class="stock-name">
+                ${symbol}
+            </div>
+
+            <div class="stock-price ${direction}">
+                $${stock.price.toFixed(2)}
+            </div>
+        `;
+
+        container.appendChild(div);
+    }
+}
+
+
+// -------------------------
+// RENDER PORTFOLIO
+// -------------------------
+
+function renderPortfolio() {
+
+    let container =
+        document.getElementById("portfolio");
+
+    container.innerHTML = "";
+
+    for (let symbol in stocks) {
+
+        let stock = stocks[symbol];
+
+        if (stock.owned > 0) {
+
+            let value =
+                stock.owned * stock.price;
+
+            let div =
+                document.createElement("div");
+
+            div.className = "holding";
+
+            div.innerHTML = `
+                <b>${symbol}</b><br>
+                ${stock.owned} shares
+                <br>
+                $${value.toFixed(2)}
+            `;
+
+            container.appendChild(div);
+        }
+    }
+
+    if (container.innerHTML === "") {
+
+        container.innerHTML =
+            "<small>No stocks owned.</small>";
+    }
+}
+
+
+// -------------------------
+// CHART
+// -------------------------
+
+function drawChart() {
+
+    let canvas =
+        document.getElementById("chart");
+
+    let ctx =
+        canvas.getContext("2d");
+
+    let width =
+        canvas.width =
+        canvas.clientWidth * devicePixelRatio;
+
+    let height =
+        canvas.height =
+        canvas.clientHeight * devicePixelRatio;
+
+    ctx.clearRect(0, 0, width, height);
+
+    let stock =
+        stocks[selectedStock];
+
+    let history =
+        stock.history;
+
+    if (history.length < 2)
+        return;
+
+    let min =
+        Math.min(...history);
+
+    let max =
+        Math.max(...history);
+
+    if (max === min) {
+        max += 1;
+        min -= 1;
+    }
+
+    // Grid
+    ctx.strokeStyle = "#333";
+    ctx.lineWidth = 1;
+
+    for (let i = 0; i < 5; i++) {
+
+        let y =
+            (height / 4) * i;
+
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+    }
+
+    // Chart line
+    ctx.beginPath();
+
+    history.forEach((price, index) => {
+
+        let x =
+            (index / (history.length - 1))
+            * width;
+
+        let y =
+            height -
+            ((price - min) / (max - min))
+            * height;
+
+        if (index === 0)
+            ctx.moveTo(x, y);
+        else
+            ctx.lineTo(x, y);
+    });
+
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 3;
+
+    ctx.stroke();
+}
+
+
+// -------------------------
+// MAIN RENDER
+// -------------------------
+
+function render() {
+
+    document.getElementById("cash")
+        .textContent =
+        cash.toFixed(2);
+
+    let portfolioValue = 0;
+
+    for (let symbol in stocks) {
+
+        let stock = stocks[symbol];
+
+        portfolioValue +=
+            stock.owned * stock.price;
+    }
+
+    let netWorth =
+        cash + portfolioValue;
+
+    let profit =
+        netWorth - STARTING_CASH;
+
+    document.getElementById("netWorth")
+        .textContent =
+        netWorth.toFixed(2);
+
+    document.getElementById("profit")
+        .textContent =
+        profit.toFixed(2);
+
+    document.getElementById("selectedStock")
+        .textContent =
+        selectedStock;
+
+    document.getElementById("selectedPrice")
+        .textContent =
+        "$" + stocks[selectedStock]
+            .price.toFixed(2);
+
+    document.getElementById("sharesOwned")
+        .textContent =
+        stocks[selectedStock].owned;
+
+    renderStocks();
+    renderPortfolio();
+    drawChart();
+}
+
+
+// -------------------------
+// TIMER
+// -------------------------
+
+function formatTime(seconds) {
+
+    let minutes =
+        Math.floor(seconds / 60);
+
+    let secs =
+        seconds % 60;
+
+    return (
+        minutes +
+        ":" +
+        String(secs).padStart(2, "0")
+    );
+}
+
+
+function updateTimer() {
+
+    if (!gameRunning)
+        return;
+
+    timeLeft--;
+
+    document.getElementById("timer")
+        .textContent =
+        formatTime(timeLeft);
+
+    if (timeLeft <= 0)
+        endGame();
+}
+
+
+// -------------------------
+// GAME OVER
+// -------------------------
+
+function endGame() {
+
+    gameRunning = false;
+
+    let portfolioValue = 0;
+
+    for (let symbol in stocks) {
+
+        portfolioValue +=
+            stocks[symbol].owned
+            * stocks[symbol].price;
+    }
+
+    let finalWorth =
+        cash + portfolioValue;
+
+    let profit =
+        finalWorth - STARTING_CASH;
+
+    let best =
+        parseFloat(
+            localStorage.getItem(
+                "kedoStockBest"
+            ) || "0"
+        );
+
+    let newRecord =
+        finalWorth > best;
+
+    if (newRecord) {
+
+        localStorage.setItem(
+            "kedoStockBest",
+            finalWorth
+        );
+    }
+
+    document.getElementById("finalScore")
+        .innerHTML = `
+            Final net worth:
+            <b>$${finalWorth.toFixed(2)}</b>
+            <br><br>
+
+            Profit:
+            <b>
+                ${profit >= 0 ? "+" : ""}
+                $${profit.toFixed(2)}
+            </b>
+
+            <br><br>
+
+            ${
+                newRecord
+                ? "🏆 NEW PERSONAL RECORD"
+                : "Best: $" + best.toFixed(2)
+            }
+        `;
+
+    document.getElementById("gameOver")
+        .style.display = "flex";
+}
+
+
+// -------------------------
+// GAME LOOPS
+// -------------------------
+
+setInterval(updatePrices, 1000);
+
+setInterval(updateTimer, 1000);
+
+
+// Initial render
+addNews("📡 Market opened.");
+addNews("💵 Starting capital: $10,000.");
+addNews("⚠️ Nobody knows what they're doing.");
+
+render();
+
+</script>
+
+</body>
+</html>
