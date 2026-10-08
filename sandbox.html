@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Knock-Off Sand Box</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: monospace;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 5px;
+}
+
+#subtitle {
+    color: #aaa;
+    margin-bottom: 15px;
+}
+
+#toolbar {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+button {
+    background: #222;
+    color: white;
+    border: 1px solid #555;
+    padding: 8px 12px;
+    font-family: monospace;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+}
+
+button.selected {
+    border: 2px solid white;
+}
+
+#sandbox {
+    width: min(95vw, 900px);
+    height: min(70vh, 600px);
+
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+
+    background: black;
+    border: 2px solid #555;
+
+    touch-action: none;
+}
+
+#info {
+    margin-top: 10px;
+    color: #aaa;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🧱 KNOCK-OFF SAND BOX</h1>
+
+<div id="subtitle">
+    We have physics at home.
+</div>
+
+<div id="toolbar">
+
+    <button onclick="selectElement('sand')" id="sandBtn">
+        🟨 Sand
+    </button>
+
+    <button onclick="selectElement('water')" id="waterBtn">
+        💧 Water
+    </button>
+
+    <button onclick="selectElement('stone')" id="stoneBtn">
+        🪨 Stone
+    </button>
+
+    <button onclick="selectElement('wood')" id="woodBtn">
+        🪵 Wood
+    </button>
+
+    <button onclick="selectElement('fire')" id="fireBtn">
+        🔥 Fire
+    </button>
+
+    <button onclick="selectElement('plant')" id="plantBtn">
+        🌱 Plant
+    </button>
+
+    <button onclick="selectElement('wall')" id="wallBtn">
+        🧱 Wall
+    </button>
+
+    <button onclick="selectElement('erase')" id="eraseBtn">
+        🧽 Eraser
+    </button>
+
+    <button onclick="clearWorld()">
+        🗑️ Clear
+    </button>
+
+</div>
+
+<canvas id="sandbox"></canvas>
+
+<div id="info">
+    Element: <span id="currentElement">sand</span>
+</div>
+
+<script>
+
+const canvas =
+    document.getElementById("sandbox");
+
+const ctx =
+    canvas.getContext("2d");
+
+
+// -------------------------
+// WORLD SIZE
+// -------------------------
+
+const WIDTH = 180;
+const HEIGHT = 120;
+
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+
+
+// -------------------------
+// ELEMENT TYPES
+// -------------------------
+
+const EMPTY = 0;
+const SAND = 1;
+const WATER = 2;
+const STONE = 3;
+const WOOD = 4;
+const FIRE = 5;
+const PLANT = 6;
+const WALL = 7;
+
+
+// -------------------------
+// WORLD
+// -------------------------
+
+let world =
+    new Array(WIDTH * HEIGHT).fill(EMPTY);
+
+let updated =
+    new Array(WIDTH * HEIGHT).fill(false);
+
+
+// -------------------------
+// COLORS
+// -------------------------
+
+const colors = {
+
+    [EMPTY]: "#000000",
+
+    [SAND]: "#d9c36a",
+
+    [WATER]: "#3f8cff",
+
+    [STONE]: "#777",
+
+    [WOOD]: "#8b5a2b",
+
+    [FIRE]: "#ff7a00",
+
+    [PLANT]: "#35b84a",
+
+    [WALL]: "#aaa"
+
+};
+
+
+// -------------------------
+// SELECTED ELEMENT
+// -------------------------
+
+let selected = SAND;
+
+
+const elementNames = {
+
+    [SAND]: "sand",
+    [WATER]: "water",
+    [STONE]: "stone",
+    [WOOD]: "wood",
+    [FIRE]: "fire",
+    [PLANT]: "plant",
+    [WALL]: "wall",
+    99: "eraser"
+
+};
+
+
+function selectElement(name) {
+
+    if (name === "sand")
+        selected = SAND;
+
+    if (name === "water")
+        selected = WATER;
+
+    if (name === "stone")
+        selected = STONE;
+
+    if (name === "wood")
+        selected = WOOD;
+
+    if (name === "fire")
+        selected = FIRE;
+
+    if (name === "plant")
+        selected = PLANT;
+
+    if (name === "wall")
+        selected = WALL;
+
+    if (name === "erase")
+        selected = 99;
+
+
+    document
+        .getElementById("currentElement")
+        .textContent =
+        name;
+
+
+    document
+        .querySelectorAll("#toolbar button")
+        .forEach(button =>
+            button.classList.remove("selected")
+        );
+
+
+    let button =
+        document.getElementById(
+            name + "Btn"
+        );
+
+    if (button)
+        button.classList.add("selected");
+}
+
+
+// -------------------------
+// WORLD FUNCTIONS
+// -------------------------
+
+function index(x, y) {
+
+    return y * WIDTH + x;
+}
+
+
+function inside(x, y) {
+
+    return (
+        x >= 0 &&
+        x < WIDTH &&
+        y >= 0 &&
+        y < HEIGHT
+    );
+}
+
+
+function get(x, y) {
+
+    if (!inside(x, y))
+        return WALL;
+
+    return world[index(x, y)];
+}
+
+
+function set(x, y, value) {
+
+    if (!inside(x, y))
+        return;
+
+    world[index(x, y)] = value;
+}
+
+
+function swap(x1, y1, x2, y2) {
+
+    let a = index(x1, y1);
+    let b = index(x2, y2);
+
+    let temp = world[a];
+
+    world[a] = world[b];
+    world[b] = temp;
+}
+
+
+// -------------------------
+// PARTICLE PHYSICS
+// -------------------------
+
+function updateSand(x, y) {
+
+    if (get(x, y + 1) === EMPTY) {
+
+        swap(x, y, x, y + 1);
+
+        return;
+    }
+
+
+    let direction =
+        Math.random() < 0.5
+        ? -1
+        : 1;
+
+
+    if (
+        get(x + direction, y + 1)
+        === EMPTY
+    ) {
+
+        swap(
+            x,
+            y,
+            x + direction,
+            y + 1
+        );
+
+        return;
+    }
+
+
+    if (
+        get(x - direction, y + 1)
+        === EMPTY
+    ) {
+
+        swap(
+            x,
+            y,
+            x - direction,
+            y + 1
+        );
+
+        return;
+    }
+
+
+    // Sand sinks through water.
+    if (
+        get(x, y + 1) === WATER
+    ) {
+
+        swap(x, y, x, y + 1);
+    }
+}
+
+
+function updateWater(x, y) {
+
+    if (
+        get(x, y + 1) === EMPTY
+    ) {
+
+        swap(x, y, x, y + 1);
+
+        return;
+    }
+
+
+    let direction =
+        Math.random() < 0.5
+        ? -1
+        : 1;
+
+
+    if (
+        get(x + direction, y)
+        === EMPTY
+    ) {
+
+        swap(
+            x,
+            y,
+            x + direction,
+            y
+        );
+
+        return;
+    }
+
+
+    if (
+        get(x - direction, y)
+        === EMPTY
+    ) {
+
+        swap(
+            x,
+            y,
+            x - direction,
+            y
+        );
+
+        return;
+    }
+}
+
+
+function updateFire(x, y) {
+
+    // Fire disappears eventually.
+
+    if (Math.random() < 0.05) {
+
+        set(x, y, EMPTY);
+
+        return;
+    }
+
+
+    // Burn nearby wood.
+
+    const neighbors = [
+
+        [x + 1, y],
+        [x - 1, y],
+        [x, y + 1],
+        [x, y - 1]
+
+    ];
+
+
+    for (let [nx, ny] of neighbors) {
+
+        if (
+            get(nx, ny) === WOOD &&
+            Math.random() < 0.04
+        ) {
+
+            set(nx, ny, FIRE);
+        }
+    }
+
+
+    // Fire rises.
+
+    if (
+        get(x, y - 1) === EMPTY
+    ) {
+
+        swap(x, y, x, y - 1);
+    }
+}
+
+
+function updatePlant(x, y) {
+
+    // Plants grow near water.
+
+    const neighbors = [
+
+        [x + 1, y],
+        [x - 1, y],
+        [x, y + 1],
+        [x, y - 1]
+
+    ];
+
+
+    for (let [nx, ny] of neighbors) {
+
+        if (
+            get(nx, ny) === WATER &&
+            Math.random() < 0.002
+        ) {
+
+            let above =
+                get(x, y - 1);
+
+            if (above === EMPTY)
+                set(x, y - 1, PLANT);
+        }
+    }
+}
+
+
+// -------------------------
+// UPDATE WORLD
+// -------------------------
+
+function updateWorld() {
+
+    updated.fill(false);
+
+
+    // Random scan direction
+    // prevents everything from
+    // moving identically.
+
+    let leftToRight =
+        Math.random() < 0.5;
+
+
+    for (
+        let y = HEIGHT - 1;
+        y >= 0;
+        y--
+    ) {
+
+        for (
+            let i = 0;
+            i < WIDTH;
+            i++
+        ) {
+
+            let x =
+                leftToRight
+                ? i
+                : WIDTH - 1 - i;
+
+
+            let cell =
+                get(x, y);
+
+
+            if (cell === SAND)
+                updateSand(x, y);
+
+            else if (cell === WATER)
+                updateWater(x, y);
+
+            else if (cell === FIRE)
+                updateFire(x, y);
+
+            else if (cell === PLANT)
+                updatePlant(x, y);
+        }
+    }
+}
+
+
+// -------------------------
+// DRAW WORLD
+// -------------------------
+
+function drawWorld() {
+
+    let image =
+        ctx.createImageData(
+            WIDTH,
+            HEIGHT
+        );
+
+    for (
+        let i = 0;
+        i < world.length;
+        i++
+    ) {
+
+        let cell =
+            world[i];
+
+        let color =
+            colors[cell];
+
+        let r =
+            parseInt(
+                color.slice(1, 3),
+                16
+            );
+
+        let g =
+            parseInt(
+                color.slice(3, 5),
+                16
+            );
+
+        let b =
+            parseInt(
+                color.slice(5, 7),
+                16
+            );
+
+        image.data[i * 4] = r;
+        image.data[i * 4 + 1] = g;
+        image.data[i * 4 + 2] = b;
+        image.data[i * 4 + 3] = 255;
+    }
+
+
+    ctx.putImageData(
+        image,
+        0,
+        0
+    );
+}
+
+
+// -------------------------
+// GAME LOOP
+// -------------------------
+
+function loop() {
+
+    updateWorld();
+
+    drawWorld();
+
+    requestAnimationFrame(loop);
+}
+
+
+// -------------------------
+// MOUSE / TOUCH
+// -------------------------
+
+let drawing = false;
+
+
+function placeAt(clientX, clientY) {
+
+    const rect =
+        canvas.getBoundingClientRect();
+
+
+    let x =
+        Math.floor(
+            (clientX - rect.left)
+            / rect.width
+            * WIDTH
+        );
+
+
+    let y =
+        Math.floor(
+            (clientY - rect.top)
+            / rect.height
+            * HEIGHT
+        );
+
+
+    if (!inside(x, y))
+        return;
+
+
+    const radius = 3;
+
+
+    for (
+        let dy = -radius;
+        dy <= radius;
+        dy++
+    ) {
+
+        for (
+            let dx = -radius;
+            dx <= radius;
+            dx++
+        ) {
+
+            if (
+                dx * dx +
+                dy * dy
+                <= radius * radius
+            ) {
+
+                if (selected === 99)
+                    set(
+                        x + dx,
+                        y + dy,
+                        EMPTY
+                    );
+
+                else
+                    set(
+                        x + dx,
+                        y + dy,
+                        selected
+                    );
+            }
+        }
+    }
+}
+
+
+canvas.addEventListener(
+    "mousedown",
+    event => {
+
+        drawing = true;
+
+        placeAt(
+            event.clientX,
+            event.clientY
+        );
+    }
+);
+
+
+canvas.addEventListener(
+    "mousemove",
+    event => {
+
+        if (!drawing)
+            return;
+
+        placeAt(
+            event.clientX,
+            event.clientY
+        );
+    }
+);
+
+
+window.addEventListener(
+    "mouseup",
+    () => {
+
+        drawing = false;
+    }
+);
+
+
+// Touch controls
+
+canvas.addEventListener(
+    "touchstart",
+    event => {
+
+        event.preventDefault();
+
+        drawing = true;
+
+        let touch =
+            event.touches[0];
+
+        placeAt(
+            touch.clientX,
+            touch.clientY
+        );
+    }
+);
+
+
+canvas.addEventListener(
+    "touchmove",
+    event => {
+
+        event.preventDefault();
+
+        if (!drawing)
+            return;
+
+        let touch =
+            event.touches[0];
+
+        placeAt(
+            touch.clientX,
+            touch.clientY
+        );
+    }
+);
+
+
+canvas.addEventListener(
+    "touchend",
+    () => {
+
+        drawing = false;
+    }
+);
+
+
+// -------------------------
+// CLEAR
+// -------------------------
+
+function clearWorld() {
+
+    world.fill(EMPTY);
+}
+
+
+// -------------------------
+// START
+// -------------------------
+
+selectElement("sand");
+
+loop();
+
+</script>
+
+</body>
+</html>
