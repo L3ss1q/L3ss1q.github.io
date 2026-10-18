@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>LuciLab Song Maker</title>
+<style>
+:root { color-scheme: dark; --bg:#11131b; --panel:#1c2030; --line:#353b50; --text:#f3f5ff; --muted:#aeb6d1; --accent:#7ce7c4; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,sans-serif; }
+header { padding:14px 16px 8px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+header p { margin:0; color:var(--muted); font-size:.9rem; }
+main { padding:8px 12px 20px; max-width:1000px; margin:auto; }
+.controls { display:flex; flex-wrap:wrap; gap:8px; padding:10px; background:var(--panel); border:1px solid var(--line); border-radius:14px; margin-bottom:12px; align-items:center; }
+button, select, input { font:inherit; }
+button, select, .field { color:var(--text); background:#292f43; border:1px solid #444c68; border-radius:9px; padding:9px 11px; }
+button { cursor:pointer; touch-action:manipulation; }
+button.primary { background:var(--accent); color:#11251f; border-color:var(--accent); font-weight:700; }
+button:active { transform:scale(.98); }
+.field { display:flex; align-items:center; gap:7px; }
+.field label { color:var(--muted); font-size:.85rem; }
+.field input[type=number] { width:65px; color:var(--text); background:#151927; border:1px solid var(--line); border-radius:6px; padding:5px; }
+.field input[type=range] { width:95px; }
+#status { color:var(--muted); font-size:.84rem; min-height:1.4em; padding:0 3px 8px; }
+.gridwrap { overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:#171a25; }
+#grid { display:block; width:100%; min-width:560px; height:auto; touch-action:manipulation; }
+.legend { display:flex; flex-wrap:wrap; gap:12px; color:var(--muted); font-size:.82rem; padding:9px 3px; }
+.dot { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; }
+.note { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px; color:var(--muted); font-size:.88rem; margin-top:12px; line-height:1.45; }
+input[type=file] { display:none; }
+@media(max-width:600px) {
+  header { padding:12px 12px 6px; }
+  h1 { font-size:1.2rem; }
+  main { padding:7px; }
+  .controls { gap:6px; padding:8px; }
+  button, select { padding:8px 9px; font-size:.9rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎹 LuciLab Song Maker</h1>
+  <p>A tiny offline music grid. Tap a cell to toggle a note.</p>
+</header>
+<main>
+  <section class="controls">
+    <button class="primary" id="playBtn">▶ Play</button>
+    <button id="stopBtn">■ Stop</button>
+    <button id="clearBtn">Clear</button>
+    <span class="field"><label for="tempo">BPM</label><input id="tempo" type="number" min="40" max="240" value="120"></span>
+    <span class="field"><label for="bars">Bars</label><select id="bars"><option>2</option><option selected>4</option><option>6</option><option>8</option></select></span>
+    <span class="field"><label for="sound">Sound</label><select id="sound"><option value="sine">Soft sine</option><option value="triangle" selected>Triangle</option><option value="square">Square</option><option value="sawtooth">Sawtooth</option></select></span>
+    <span class="field"><label for="volume">Vol</label><input id="volume" type="range" min="0" max="100" value="45"></span>
+    <button id="saveBtn">Save song</button>
+    <button id="loadBtn">Load song</button>
+    <input id="fileInput" type="file" accept=".json,application/json">
+    <button class="primary" id="midiBtn">Export MIDI</button>
+  </section>
+  <div id="status" aria-live="polite">Ready. Tap the grid to add notes; use Save song to keep your work.</div>
+  <div class="gridwrap"><canvas id="grid" width="960" height="600" aria-label="Music note grid"></canvas></div>
+  <div class="legend">
+    <span><i class="dot" style="background:#ff647c"></i>C</span>
+    <span><i class="dot" style="background:#ffab5e"></i>D</span>
+    <span><i class="dot" style="background:#ffe16a"></i>E</span>
+    <span><i class="dot" style="background:#78e08f"></i>F</span>
+    <span><i class="dot" style="background:#65d9dc"></i>G</span>
+    <span><i class="dot" style="background:#75a7ff"></i>A</span>
+    <span><i class="dot" style="background:#c38cff"></i>B</span>
+    <span>⬛ Drum row at bottom</span>
+  </div>
+  <div class="note">
+    <strong style="color:var(--text)">How it works</strong><br>
+    The grid has 16 steps per bar. Each column is one sixteenth-note step; each colored cell is a pitch. The drum row is a simple click sound. Use <b>Save song</b> to export a JSON project you can reopen, or <b>Export MIDI</b> to create a standard <code>.mid</code> file. The app uses your browser's built-in audio and works offline once this HTML file is saved.
+  </div>
+</main>
+<script>
+(() => {
+  const canvas = document.getElementById('grid');
+  const ctx = canvas.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const ROWS = 25; // 24 pitches + one drum row
+  const PITCHES = 24;
+  const STEPS_PER_BAR = 16;
+  let bars = 4, steps = bars * STEPS_PER_BAR;
+  let notes = new Set();
+  let drum = new Set();
+  let playing = false, timer = null, playStep = -1, nextTime = 0, audio = null;
+  let master = null, scheduled = [];
+  const colors = ['#ff647c','#ff8b68','#ffab5e','#ffc65f','#ffe16a','#b9e56d','#78e08f','#5fe0ae','#65d9dc','#67c6f2','#75a7ff','#9a8cff','#c38cff'];
+  // MIDI pitches C4 through B5, displayed top-down from B5 to C4.
+  const pitchName = midi => {
+    const names = ['C','C♯','D','D♯','E','F','F♯','G','G♯','A','A♯','B'];
+    return names[midi % 12] + (Math.floor(midi / 12) - 1);
+  };
+  const rowMidi = row => 83 - row; // top row B5, bottom pitch row C4
+  const key = (step,row) => `${step},${row}`;
+  function resizeCanvas() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = Math.max(560, canvas.parentElement.clientWidth);
+    const cssH = cssW * 600 / 960;
+    canvas.style.width = cssW + 'px';
+    canvas.style.height = cssH + 'px';
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    ctx.setTransform(canvas.width / 960, 0, 0, canvas.height / 600, 0, 0);
+    draw();
+  }
+  function draw() {
+    const W=960,H=600,left=48,top=20,right=12,bottom=12;
+    const gridW=W-left-right, gridH=H-top-bottom, cellW=gridW/steps, cellH=gridH/ROWS;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='#171a25'; ctx.fillRect(0,0,W,H);
+    for(let r=0;r<ROWS;r++) {
+      for(let c=0;c<steps;c++) {
+        const x=left+c*cellW, y=top+r*cellH;
+        if(r===PITCHES) {
+          ctx.fillStyle = drum.has(c) ? '#f6a34b' : '#24283a';
+        } else if(notes.has(key(c,r))) {
+          ctx.fillStyle=colors[Math.floor((PITCHES-1-r)/2)%colors.length];
+        } else {
+          const pitch=rowMidi(r)%12;
+          ctx.fillStyle = pitch===1||pitch===3||pitch===6||pitch===8||pitch===10 ? '#202435' : '#2a3043';
+        }
+        ctx.fillRect(x+1,y+1,Math.max(0,cellW-2),Math.max(0,cellH-2));
+      }
+      ctx.fillStyle='#cbd2e8'; ctx.font='12px system-ui'; ctx.textAlign='right'; ctx.textBaseline='middle';
+      ctx.fillText(r===PITCHES?'🥁':pitchName(rowMidi(r)),left-7,top+r*cellH+cellH/2);
+    }
+    for(let c=0;c<=steps;c++) {
+      ctx.beginPath(); ctx.strokeStyle=(c%4===0)?'#59627e':'#353b50'; ctx.lineWidth=(c%4===0)?2:1;
+      ctx.moveTo(left+c*cellW,top);ctx.lineTo(left+c*cellW,top+gridH);ctx.stroke();
+    }
+    if(playing && playStep>=0) {
+      ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(left+playStep*cellW,top,cellW,gridH);
+    }
+    // bar numbers
+    ctx.font='bold 12px system-ui';ctx.textAlign='left';ctx.textBaseline='top';ctx.fillStyle='#aeb6d1';
+    for(let b=0;b<bars;b++) ctx.fillText(String(b+1),left+b*16*cellW+4,2);
+  }
+  function status(msg){$('status').textContent=msg;}
+  function audioReady() {
+    if(!audio) {
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC){status('This browser does not support Web Audio.');return false;}
+      audio=new AC(); master=audio.createGain(); master.gain.value=Number($('volume').value)/100; master.connect(audio.destination);
+    }
+    if(audio.state==='suspended') audio.resume();
+    return true;
+  }
+  function playTone(freq, time, duration, type, vol=0.22) {
+    if(!audioReady())return;
+    const osc=audio.createOscillator(), gain=audio.createGain();
+    osc.type=type; osc.frequency.setValueAtTime(freq,time);
+    gain.gain.setValueAtTime(0.0001,time);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.001,vol),time+.008);
+    gain.gain.exponentialRampToValueAtTime(.0001,time+duration);
+    osc.connect(gain);gain.connect(master);
+    osc.start(time);osc.stop(time+duration+.02);
+  }
+  function tick(time) {
+    const beat=60/Math.max(40,Math.min(240,Number($('tempo').value)||120));
+    const stepDur=beat/4;
+    if(drum.has(playStep)) {
+      // short noise-like drum click made from a high-pitched oscillator
+      playTone(115,time,.07,'square',.15);
+    }
+    for(let r=0;r<PITCHES;r++) if(notes.has(key(playStep,r))) {
+      const midi=rowMidi(r), freq=440*Math.pow(2,(midi-69)/12);
+      playTone(freq,time,stepDur*.88,$('sound').value,.18);
+    }
+  }
+  function schedule() {
+    if(!playing || !audio) return;
+    const beat=60/Math.max(40,Math.min(240,Number($('tempo').value)||120));
+    const stepDur=beat/4;
+    while(nextTime<audio.currentTime+.12) {
+      tick(nextTime);
+      const s=playStep;
+      scheduled.push(setTimeout(()=>{ if(playing){playStep=s;draw();}},Math.max(0,(nextTime-audio.currentTime)*1000)));
+      playStep=(playStep+1)%steps;
+      nextTime+=stepDur;
+    }
+    timer=setTimeout(schedule,25);
+  }
+  function start() {
+    if(playing){stop();return;}
+    if(!audioReady())return;
+    playing=true; playStep=0; nextTime=audio.currentTime+.04;
+    $('playBtn').textContent='⏸ Pause'; status('Playing…');
+    schedule();
+  }
+  function stop() {
+    playing=false;clearTimeout(timer);scheduled.forEach(clearTimeout);scheduled=[];
+    playStep=-1;$('playBtn').textContent='▶ Play';draw();status('Stopped.');
+  }
+  canvas.addEventListener('pointerdown', e => {
+    const rect=canvas.getBoundingClientRect();
+    const x=(e.clientX-rect.left)/rect.width*960;
+    const y=(e.clientY-rect.top)/rect.height*600;
+    const left=48,top=20,right=12,bottom=12;
+    const c=Math.floor((x-left)/((960-left-right)/steps));
+    const r=Math.floor((y-top)/((600-top-bottom)/ROWS));
+    if(c<0||c>=steps||r<0||r>=ROWS)return;
+    if(r===PITCHES){drum.has(c)?drum.delete(c):drum.add(c);}
+    else {const k=key(c,r);notes.has(k)?notes.delete(k):notes.add(k);}
+    draw();
+    // Immediate preview when tapping a pitch cell.
+    if(r<PITCHES && notes.has(key(c,r))) {
+      const m=rowMidi(r);playTone(440*Math.pow(2,(m-69)/12),audio?.currentTime||0,.16,$('sound').value,.12);
+    }
+  });
+  $('playBtn').addEventListener('click',start);
+  $('stopBtn').addEventListener('click',stop);
+  $('clearBtn').addEventListener('click',()=>{stop();notes.clear();drum.clear();draw();status('Grid cleared.');});
+  $('bars').addEventListener('change',()=>{const old=steps;bars=Number($('bars').value);steps=bars*16;notes=new Set([...notes].filter(k=>Number(k.split(',')[0])<steps));drum=new Set([...drum].filter(s=>s<steps));draw();status(`Grid set to ${bars} bars.`);});
+  $('volume').addEventListener('input',()=>{if(master)master.gain.value=Number($('volume').value)/100;});
+  $('saveBtn').addEventListener('click',()=>{
+    const data={format:'LuciLabSongMaker',version:1,bpm:Number($('tempo').value)||120,bars,notes:[...notes],drum:[...drum],sound:$('sound').value};
+    download(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'lucilab-song.json');
+    status('Song saved as JSON. Keep this file to reopen your project.');
+  });
+  $('loadBtn').addEventListener('click',()=>$('fileInput').click());
+  $('fileInput').addEventListener('change',async e=>{
+    const f=e.target.files[0];if(!f)return;
+    try{
+      const d=JSON.parse(await f.text());
+      if(d.format!=='LuciLabSongMaker')throw Error('Not a LuciLab project');
+      bars=[2,4,6,8].includes(Number(d.bars))?Number(d.bars):4;steps=bars*16;$('bars').value=String(bars);
+      notes=new Set((d.notes||[]).filter(k=>{const [s,r]=k.split(',').map(Number);return s>=0&&s<steps&&r>=0&&r<PITCHES;}));
+      drum=new Set((d.drum||[]).filter(s=>Number(s)>=0&&Number(s)<steps).map(Number));
+      $('tempo').value=Math.max(40,Math.min(240,Number(d.bpm)||120));
+      if(['sine','triangle','square','sawtooth'].includes(d.sound))$('sound').value=d.sound;
+      draw();status('Project loaded.');
+    }catch(err){status('Could not load that project file.');}
+    e.target.value='';
+  });
+  function download(blob,name) {
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+  function exportMidi() {
+    const bpm=Math.max(40,Math.min(240,Number($('tempo').value)||120));
+    const ppq=480, ticksPerStep=ppq/4, totalTicks=steps*ticksPerStep;
+    const events=[];
+    function vlq(n){let b=[n&127];while((n>>=7)){b.unshift((n&127)|128);}return b;}
+    function addEvent(t,bytes){events.push({t,bytes});}
+    // Tempo meta event: microseconds per quarter note
+    const micros=Math.round(60000000/bpm);
+    addEvent(0,[0xFF,0x51,0x03,(micros>>16)&255,(micros>>8)&255,micros&255]);
+    addEvent(0,[0xC0,0]); // program 1, piano
+    for(const k of notes) {
+      const [s,r]=k.split(',').map(Number), pitch=rowMidi(r);
+      const start=s*ticksPerStep,end=start+ticksPerStep;
+      addEvent(start,[0x90,pitch,95]);addEvent(end,[0x80,pitch,0]);
+    }
+    for(const s of drum) {
+      const start=s*ticksPerStep,end=start+ticksPerStep/2;
+      addEvent(start,[0x99,36,90]);addEvent(end,[0x89,36,0]);
+    }
+    events.sort((a,b)=>a.t-b.t);
+    const track=[];let last=0;
+    for(const ev of events){track.push(...vlq(ev.t-last),...ev.bytes);last=ev.t;}
+    track.push(...vlq(Math.max(0,totalTicks-last)),0xFF,0x2F,0x00);
+    const put32=n=>[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255];
+    const put16=n=>[(n>>>8)&255,n&255];
+    const bytes=[...Array.from('MThd').map(c=>c.charCodeAt(0)),...put32(6),...put16(0),...put16(1),...put16(ppq),
+      ...Array.from('MTrk').map(c=>c.charCodeAt(0)),...put32(track.length),...track];
+    download(new Blob([new Uint8Array(bytes)],{type:'audio/midi'}),'lucilab-song.mid');
+    status('MIDI exported! Notes are exported at sixteenth-note steps.');
+  }
+  $('midiBtn').addEventListener('click',exportMidi);
+  window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();
+})();
+</script>
+</body>
+</html>
