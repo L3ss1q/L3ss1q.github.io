@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L3ss1q Binary Playground</title>
+<style>
+:root{--bg:#10141d;--panel:#191f2c;--text:#edf2ff;--muted:#a8b4ca;--accent:#80f0c0;--blue:#86b7ff;--line:#354158;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#202b40,#10141d 60%);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+header{text-align:center;padding:28px 16px 22px;border-bottom:1px solid var(--line)}.eyebrow{color:var(--accent);font:700 12px var(--mono);letter-spacing:.16em}
+h1{font-size:clamp(2rem,7vw,3.3rem);line-height:1.1;margin:8px 0;letter-spacing:-.04em}header p{max-width:650px;margin:10px auto;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:20px 14px 40px}nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-bottom:18px}nav a{color:var(--text);text-decoration:none;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:8px 12px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.card{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:17px;box-shadow:0 8px 24px #0002}.wide{grid-column:1/-1}
+h2{font-size:1.15rem;margin:0 0 4px}.desc{font-size:14px;color:var(--muted);margin:0 0 13px}
+label{display:block;color:var(--muted);font-size:13px;margin:10px 0 5px}input,select{width:100%;min-width:0;background:#0d121a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 11px;font:15px var(--mono)}input:focus,select:focus{outline:2px solid var(--blue)}
+button{background:#263249;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 11px;font-weight:650;cursor:pointer}button.primary{background:var(--accent);color:#10251e;border-color:transparent}button:hover{filter:brightness(1.12)}
+.row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.result{background:#0d121a;border:1px solid var(--line);border-radius:8px;padding:10px;font:14px var(--mono);overflow-wrap:anywhere;min-height:40px;margin-top:5px}.status,.note{color:var(--muted);font-size:12px;margin-top:8px}.output{font:700 1.3rem var(--mono);color:var(--accent);overflow-wrap:anywhere}
+.buttons{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}.bitstrip{display:flex;flex-wrap:wrap;gap:4px;margin:12px 0 5px}.bit{font:13px var(--mono);background:#0d121a;border:1px solid var(--line);padding:6px 7px;border-radius:5px}.bit.one{background:var(--accent);color:#10251e;font-weight:800}
+.memory{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px;margin-top:12px}.byte{min-width:0;text-align:center;background:#0d121a;border:1px solid var(--line);border-radius:5px;padding:7px 1px;font:12px var(--mono)}.byte span{display:block;font-size:10px;color:var(--muted);margin-bottom:3px}
+footer{text-align:center;border-top:1px solid var(--line);padding:18px;color:var(--muted);font-size:12px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.row{grid-template-columns:1fr}.memory{grid-template-columns:repeat(4,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header><div class="eyebrow">L3SS1Q LAB // COMPUTER SCIENCE</div><h1>Binary Playground</h1><p>Experiment with bits, numbers, characters, and simulated memory. No installation or internet required.</p></header>
+<main>
+<nav><a href="#convert">Number converter</a><a href="#bits">Bitwise lab</a><a href="#ascii">ASCII explorer</a><a href="#memory">Memory viewer</a></nav>
+<div class="grid">
+<section class="card" id="convert">
+<h2>01 / Number converter</h2><p class="desc">Enter a whole number in any base to see its other representations.</p>
+<label for="decimal">Decimal (base 10)</label><input id="decimal" inputmode="numeric" value="65">
+<label for="binary">Binary (base 2)</label><input id="binary" value="01000001" spellcheck="false">
+<label for="hex">Hexadecimal (base 16)</label><input id="hex" value="41" spellcheck="false">
+<div class="row"><div><label for="width">Bit width</label><select id="width"><option>8</option><option selected>16</option><option>32</option><option>64</option></select></div><div><label for="signed">Interpretation</label><select id="signed"><option value="unsigned">Unsigned</option><option value="signed">Signed (two's complement)</option></select></div><div><label>Example</label><button id="example" style="width:100%;margin-top:5px">Load 255</button></div></div>
+<div class="result" id="bitView"></div><div class="row"><div><label>Unsigned value</label><div class="result" id="unsignedOut">65</div></div><div><label>Signed value</label><div class="result" id="signedOut">65</div></div><div><label>Bytes needed</label><div class="result" id="byteOut">1</div></div></div><div class="status" id="convertStatus" aria-live="polite"></div>
+</section>
+<section class="card" id="bits">
+<h2>02 / Bitwise lab</h2><p class="desc">Try operations on the bits of two integers.</p>
+<div class="row"><div><label for="aVal">A (decimal)</label><input id="aVal" value="12" inputmode="numeric"></div><div><label for="bVal">B (decimal)</label><input id="bVal" value="10" inputmode="numeric"></div><div><label for="bitWidth">Width</label><select id="bitWidth"><option>8</option><option selected>16</option><option>32</option></select></div></div>
+<div class="buttons"><button data-op="AND" class="primary">A AND B</button><button data-op="OR">A OR B</button><button data-op="XOR">A XOR B</button><button data-op="NOT">NOT A</button><button data-op="LSL">A &lt;&lt; 1</button><button data-op="LSR">A &gt;&gt; 1</button></div>
+<label>Result (decimal)</label><div class="output" id="opOut">8</div><label>Result (binary)</label><div class="result" id="opBinary">0000000000001000</div><p class="note" id="opExplain">AND keeps a bit only when both corresponding bits are 1.</p>
+<div class="bitstrip" id="aBits"></div><div class="note">A bits (left = most significant bit)</div><div class="bitstrip" id="bBits"></div><div class="note">B bits (left = most significant bit)</div>
+</section>
+<section class="card" id="ascii">
+<h2>03 / ASCII explorer</h2><p class="desc">ASCII represents basic English letters, digits, punctuation, and control codes using numbers 0–127.</p>
+<label for="charInput">Character (first character used)</label><input id="charInput" value="A" maxlength="8">
+<label for="codeInput">Decimal code (0–127)</label><input id="codeInput" value="65" inputmode="numeric">
+<div class="row"><div><label>Hexadecimal</label><div class="result" id="asciiHex">0x41</div></div><div><label>Binary</label><div class="result" id="asciiBin">01000001</div></div><div><label>Meaning</label><div class="result" id="asciiMeaning">A</div></div></div>
+<p class="note">Codes 0–31 and 127 are control codes, so they do not all have visible characters. Readable labels are shown instead.</p>
+</section>
+<section class="card" id="memory">
+<h2>04 / Simulated memory</h2><p class="desc">A pretend 32-byte memory buffer. Nothing here accesses real device memory.</p>
+<label for="memText">Write text into memory</label><input id="memText" value="KEDO">
+<div class="buttons"><button class="primary" id="writeText">Write text</button><button id="clearMemory">Clear memory</button><button id="fillRandom">Random bytes</button></div>
+<label>Edit one byte</label><div class="row"><div><label for="memAddress">Address (0–31)</label><input id="memAddress" value="0" inputmode="numeric"></div><div><label for="memValue">Hex byte</label><input id="memValue" value="4B" maxlength="2"></div><div><label>&nbsp;</label><button id="writeByte" style="width:100%">Write byte</button></div></div>
+<div class="memory" id="memoryGrid"></div><div class="status" id="memoryStatus" aria-live="polite">Simulated memory only.</div>
+</section>
+<section class="card wide"><h2>05 / Tiny glossary</h2><div class="row"><div><strong>Bit</strong><p class="desc">One binary digit: 0 or 1.</p></div><div><strong>Byte</strong><p class="desc">Usually 8 bits; 256 possible patterns.</p></div><div><strong>Hexadecimal</strong><p class="desc">Base 16, using 0–9 and A–F. One hex digit represents four bits.</p></div></div><p class="desc">Example: decimal 65 = hexadecimal <code>41</code> = binary <code>01000001</code> = ASCII <code>A</code>.</p></section>
+</div></main><footer>L3SS1Q LAB · Binary Playground · Works locally in your browser</footer>
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+function parse(s,base){s=String(s).trim().replace(/_/g,'');if(!s)throw Error('Enter a number.');if(base===2&&!/^[01]+$/.test(s))throw Error('Binary can contain only 0 and 1.');if(base===16){s=s.replace(/^0x/i,'');if(!/^[0-9a-f]+$/i.test(s))throw Error('Hex can contain only 0–9 and A–F.');}if(base===10&&!/^-?\d+$/.test(s))throw Error('Enter a whole decimal number.');return base===10?BigInt(s):BigInt((base===2?'0b':'0x')+s);}
+function bits(n,w){return BigInt.asUintN(w,n).toString(2).padStart(w,'0');}
+function convert(source){let base=source==='decimal'?10:source==='binary'?2:16;try{let n=parse($(source).value,base),w=Number($('width').value),u=BigInt.asUintN(w,n),s=BigInt.asIntN(w,n);$('decimal').value=n.toString();$('binary').value=u.toString(2);$('hex').value=u.toString(16).toUpperCase();$('bitView').textContent=bits(u,w).replace(/(.{4})/g,'$1 ').trim();$('unsignedOut').textContent=u.toString();$('signedOut').textContent=s.toString();$('byteOut').textContent=Math.max(1,Math.ceil(u.toString(2).length/8));$('convertStatus').textContent=`Showing the low ${w} bits; values outside that width wrap around.`;}catch(e){$('convertStatus').textContent=e.message;}}
+['decimal','binary','hex'].forEach(id=>$(id).addEventListener('input',()=>convert(id)));$('width').addEventListener('change',()=>convert('decimal'));$('example').addEventListener('click',()=>{$('decimal').value='255';convert('decimal');});
+const explain={AND:'AND: a result bit is 1 only when both input bits are 1.',OR:'OR: a result bit is 1 when either input bit is 1.',XOR:'XOR: a result bit is 1 when the input bits differ.',NOT:'NOT flips every bit in A within the selected width.',LSL:'Left shift moves bits left; bits that fall off are discarded.',LSR:'Unsigned right shift moves bits right and fills with zeroes.'};
+function bitHtml(n,w){return bits(n,w).split('').map(b=>`<span class="bit ${b==='1'?'one':''}">${b}</span>`).join('');}
+let currentOp='AND';
+function doOp(op){currentOp=op;try{let a=BigInt($('aVal').value.trim()),b=BigInt($('bVal').value.trim()),w=Number($('bitWidth').value),mask=(1n<<BigInt(w))-1n;a=BigInt.asUintN(w,a);b=BigInt.asUintN(w,b);let r;if(op==='AND')r=a&b;if(op==='OR')r=a|b;if(op==='XOR')r=a^b;if(op==='NOT')r=(~a)&mask;if(op==='LSL')r=(a<<1n)&mask;if(op==='LSR')r=a>>1n;r=BigInt.asUintN(w,r);$('opOut').textContent=r.toString();$('opBinary').textContent=bits(r,w);$('opExplain').textContent=explain[op];$('aBits').innerHTML=bitHtml(a,w);$('bBits').innerHTML=bitHtml(b,w);}catch(e){$('opOut').textContent='Enter valid whole numbers.';$('opBinary').textContent='';}}
+document.querySelectorAll('[data-op]').forEach(b=>b.addEventListener('click',()=>doOp(b.dataset.op)));['aVal','bVal','bitWidth'].forEach(id=>$(id).addEventListener('input',()=>doOp(currentOp)));
+const control=['NUL','SOH','STX','ETX','EOT','ENQ','ACK','BEL','BS','TAB','LF','VT','FF','CR','SO','SI','DLE','DC1','DC2','DC3','DC4','NAK','SYN','ETB','CAN','EM','SUB','ESC','FS','GS','RS','US'];
+function asciiLabel(n){if(n<32)return control[n];if(n===32)return 'SPACE';if(n===127)return 'DEL';return String.fromCharCode(n);}
+function ascii(n){if(!Number.isInteger(n)||n<0||n>127){$('asciiMeaning').textContent='Enter 0–127';$('asciiHex').textContent='—';$('asciiBin').textContent='—';return;}$('charInput').value=n>=32&&n<=126?String.fromCharCode(n):'';$('codeInput').value=n;$('asciiHex').textContent='0x'+n.toString(16).toUpperCase().padStart(2,'0');$('asciiBin').textContent=n.toString(2).padStart(8,'0');$('asciiMeaning').textContent=asciiLabel(n);}
+$('charInput').addEventListener('input',()=>{let s=$('charInput').value;if(!s)return;let n=s.codePointAt(0);if(n>127){$('asciiMeaning').textContent='Not ASCII';$('asciiHex').textContent='—';$('asciiBin').textContent='—';return;}ascii(n);});$('codeInput').addEventListener('input',()=>ascii(Number($('codeInput').value)));
+const mem=new Uint8Array(32);function renderMem(){$('memoryGrid').innerHTML=Array.from(mem,(v,i)=>`<div class="byte"><span>${i.toString(16).toUpperCase().padStart(2,'0')}</span>${v.toString(16).toUpperCase().padStart(2,'0')}</div>`).join('');}
+$('writeText').addEventListener('click',()=>{mem.fill(0);let bytes=new TextEncoder().encode($('memText').value);mem.set(bytes.slice(0,32));renderMem();$('memoryStatus').textContent=`Wrote ${Math.min(bytes.length,32)} UTF-8 byte(s) into simulated memory.`;});
+$('clearMemory').addEventListener('click',()=>{mem.fill(0);renderMem();$('memoryStatus').textContent='Memory cleared.';});
+$('fillRandom').addEventListener('click',()=>{for(let i=0;i<32;i++)mem[i]=Math.floor(Math.random()*256);renderMem();$('memoryStatus').textContent='Filled with random demo bytes.';});
+$('writeByte').addEventListener('click',()=>{let a=Number($('memAddress').value),v=$('memValue').value.trim().replace(/^0x/i,'');if(!Number.isInteger(a)||a<0||a>=32){$('memoryStatus').textContent='Address must be between 0 and 31.';return;}if(!/^[0-9a-f]{1,2}$/i.test(v)){$('memoryStatus').textContent='Enter one or two hex digits, e.g. 4B.';return;}mem[a]=parseInt(v,16);renderMem();$('memoryStatus').textContent=`Address 0x${a.toString(16).toUpperCase().padStart(2,'0')} now contains 0x${mem[a].toString(16).toUpperCase().padStart(2,'0')}.`;});
+convert('decimal');doOp('AND');ascii(65);renderMem();
+})();
+</script></body></html>
