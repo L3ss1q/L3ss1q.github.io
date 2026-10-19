@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L3ss1q Instrument Comparison Lab</title>
+<style>
+:root{--bg:#0b0d13;--panel:#151923;--line:#343c50;--text:#edf0ff;--muted:#a6aec7;--accent:#c8a8ff;--good:#8ef0c2;--warn:#ffd58a}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#222039 0%,var(--bg) 60%);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{text-align:center;padding:24px 14px 12px}
+h1{font-size:clamp(1.7rem,6vw,2.8rem);margin:0;color:var(--accent);letter-spacing:.04em}
+header p{margin:7px 0 0;color:var(--muted)}
+main{max-width:1000px;margin:auto;padding:12px;display:grid;gap:13px}
+.panel{background:#151923ed;border:1px solid var(--line);border-radius:14px;padding:15px}
+h2{font-size:1.08rem;margin:0 0 10px;color:var(--accent)}
+label{display:block;color:var(--muted);font-size:.88rem;margin-bottom:5px}
+select,input,button{font:inherit}
+select,input[type=number],input[type=range]{width:100%}
+select,input[type=number]{color:var(--text);background:#0b0e16;border:1px solid #4a526a;border-radius:8px;padding:10px}
+button{background:#29233e;color:var(--text);border:1px solid #62518a;border-radius:9px;padding:10px 12px;cursor:pointer;touch-action:manipulation}
+button:hover{background:#393052}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.row button{flex:1}
+.small{font-size:.88rem;color:var(--muted)}
+.note{border-left:3px solid var(--accent);padding:8px 11px;background:#201d2c;border-radius:0 8px 8px 0}
+.tracklist{display:grid;gap:9px}
+.track{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px;border:1px solid #353c4e;border-radius:10px;background:#10131b}
+.track strong{display:block}.track span{display:block;color:var(--muted);font-size:.85rem}
+.track button{min-width:85px}
+.presetgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#piano{display:flex;gap:4px;overflow-x:auto;padding:8px 2px 12px}
+.key{min-width:43px;height:115px;background:#f4f2fb;border:1px solid #b8b5c4;border-radius:0 0 7px 7px;color:#24202d;display:flex;align-items:flex-end;justify-content:center;padding:7px 3px;font-size:.75rem}
+.key.black{background:#302b3b;color:#fff;height:77px;min-width:32px;margin-left:-18px;margin-right:-18px;z-index:1;align-items:flex-end}
+.key:active{background:var(--accent)}
+#status{min-height:24px;color:var(--good)}
+@media(min-width:760px){main{grid-template-columns:1fr 1fr}.wide{grid-column:1/-1}}
+</style>
+</head>
+<body>
+<header><h1>INSTRUMENT COMPARISON LAB</h1><p>One melody. Different timbres. Offline audio experiments.</p></header>
+<main>
+<section class="panel wide">
+<h2>01 / SOUND ENGINE</h2>
+<div class="controls">
+ <div><label for="wave">Synth instrument</label><select id="wave"><option value="sine">Sine — smooth and pure</option><option value="triangle">Triangle — soft, rounded</option><option value="square">Square — hollow, retro</option><option value="sawtooth">Sawtooth — bright, buzzy</option></select></div>
+ <div><label for="octave">Register</label><select id="octave"><option value="3">Low</option><option value="4" selected>Middle</option><option value="5">High</option></select></div>
+ <div><label for="tempo">Tempo: <b id="tempoval">110</b> BPM</label><input id="tempo" type="range" min="50" max="220" value="110"></div>
+ <div><label for="duration">Note length</label><select id="duration"><option value="0.18">Short / staccato</option><option value="0.35" selected>Normal</option><option value="0.65">Long / legato-ish</option></select></div>
+</div>
+<div class="row"><button id="playmelody">▶ Play test melody</button><button id="stop">■ Stop</button><button id="single">♪ Play one note</button></div>
+<p class="small">This lab uses the browser's built-in Web Audio synthesizer. It works offline, but these are synthesized waveforms—not recordings of real instruments.</p>
+<div id="status" role="status"></div>
+</section>
+<section class="panel">
+<h2>02 / TIMBRE PRESETS</h2>
+<div class="presetgrid">
+<button data-wave="sine">Flute-like · sine</button><button data-wave="triangle">Soft strings · triangle</button><button data-wave="square">Retro pulse · square</button><button data-wave="sawtooth">Brass-like · sawtooth</button>
+</div>
+<p class="small">These are playful approximations, not faithful flute, string, or brass samples.</p>
+</section>
+<section class="panel">
+<h2>03 / TRACK A/B TEST</h2>
+<p class="small">Choose a preset for each track, then compare the same phrase.</p>
+<div class="tracklist">
+ <div class="track"><div><strong>Track A</strong><span>Current waveform: <b id="labelA">Sine</b></span><select id="waveA" aria-label="Track A waveform"><option value="sine">Sine</option><option value="triangle">Triangle</option><option value="square">Square</option><option value="sawtooth">Sawtooth</option></select></div><button id="playA">Play A</button></div>
+ <div class="track"><div><strong>Track B</strong><span>Current waveform: <b id="labelB">Sawtooth</b></span><select id="waveB" aria-label="Track B waveform"><option value="sine">Sine</option><option value="triangle">Triangle</option><option value="square">Square</option><option value="sawtooth" selected>Sawtooth</option></select></div><button id="playB">Play B</button></div>
+</div>
+<div class="row"><button id="ab">▶ Play A then B</button><button id="both">▶ Play A + B together</button></div>
+</section>
+<section class="panel wide">
+<h2>04 / NOTE EXPLORER</h2>
+<p class="small">Tap a piano key to hear it. Use this to compare how the same note sounds in different registers and waveforms.</p>
+<div id="piano"></div>
+<div class="controls">
+ <div><label for="noteWave">Piano waveform</label><select id="noteWave"><option value="sine">Sine</option><option value="triangle" selected>Triangle</option><option value="square">Square</option><option value="sawtooth">Sawtooth</option></select></div>
+ <div><label for="gain">Volume: <b id="gainval">35%</b></label><input id="gain" type="range" min="5" max="80" value="35"></div>
+</div>
+</section>
+<section class="panel wide">
+<h2>05 / EXPERIMENT NOTES</h2>
+<label for="notes">Record what you notice (saved only while this page is open)</label>
+<textarea id="notes" rows="4" style="width:100%;resize:vertical;background:#0b0e16;color:var(--text);border:1px solid #4a526a;border-radius:8px;padding:10px" placeholder="Example: square sounds harsher; triangle is rounder..."></textarea>
+<div class="row"><button id="download">Export notes (.txt)</button><button id="clearNotes">Clear notes</button></div>
+<p class="note small">Scientific method: change one variable at a time. Keep the melody and tempo the same while comparing timbre; then change the register or note length separately.</p>
+</section>
+</main>
+<script>
+(()=>{
+ let ctx=null,active=[],playingToken=0;
+ const $=id=>document.getElementById(id);
+ function audio(){if(!ctx)ctx=new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==="suspended")ctx.resume();return ctx}
+ function stop(){playingToken++;for(const n of active){try{n.stop()}catch(e){}try{n.disconnect()}catch(e){}}active=[];$("status").textContent="Playback stopped."}
+ function freq(note){return 440*Math.pow(2,(note-69)/12)}
+ function tone(note,when,dur,wave,vol){
+  const c=audio(),o=c.createOscillator(),g=c.createGain();o.type=wave;o.frequency.setValueAtTime(freq(note),when);
+  const peak=Math.max(.001,vol);g.gain.setValueAtTime(.0001,when);g.gain.exponentialRampToValueAtTime(peak,when+.012);g.gain.setValueAtTime(peak,Math.max(when+.013,when+dur-.035));g.gain.exponentialRampToValueAtTime(.0001,when+dur);
+  o.connect(g);g.connect(c.destination);o.start(when);o.stop(when+dur+.02);active.push(o,g);
+ }
+ const melody=[60,64,67,72,67,64,62,65,69,74,69,65,60,64,67,72];
+ function playPhrase(wave,offset=0,done=()=>{}){
+  stop();const token=playingToken,c=audio(),step=60/Number($("tempo").value),dur=Number($("duration").value),oct=Number($("octave").value)-4;
+  melody.forEach((n,i)=>tone(n+oct*12,c.currentTime+.06+offset+i*step,Math.min(dur,step*.94),wave,Number($("gain").value)/100*.28));
+  $("status").textContent="Playing "+wave+" waveform…";
+  const total=(melody.length-1)*step+Math.min(dur,step*.94)+.15;
+  setTimeout(()=>{if(token===playingToken){active=[];$("status").textContent="Phrase complete.";done()}},total*1000);
+ }
+ $("tempo").addEventListener("input",()=>$("tempoval").textContent=$("tempo").value);
+ $("gain").addEventListener("input",()=>$("gainval").textContent=$("gain").value+"%");
+ $("playmelody").onclick=()=>playPhrase($("wave").value);
+ $("stop").onclick=stop;
+ $("single").onclick=()=>{stop();let c=audio();tone(60+(Number($("octave").value)-4)*12,c.currentTime+.03,.5,$("wave").value,Number($("gain").value)/100*.3);$("status").textContent="Playing one note."};
+ document.querySelectorAll("[data-wave]").forEach(b=>b.onclick=()=>{$("wave").value=b.dataset.wave;playPhrase(b.dataset.wave)});
+ function refreshLabels(){$("labelA").textContent=$("waveA").value;$("labelB").textContent=$("waveB").value}
+ $("waveA").onchange=refreshLabels;$("waveB").onchange=refreshLabels;
+ $("playA").onclick=()=>playPhrase($("waveA").value);
+ $("playB").onclick=()=>playPhrase($("waveB").value);
+ $("ab").onclick=()=>playPhrase($("waveA").value,0,()=>{if(!playingToken)return;playPhrase($("waveB").value)});
+ $("both").onclick=()=>{stop();const c=audio(),step=60/Number($("tempo").value),dur=Number($("duration").value),oct=Number($("octave").value)-4;melody.forEach((n,i)=>{let t=c.currentTime+.06+i*step;let d=Math.min(dur,step*.94);tone(n+oct*12,t,d,$("waveA").value,.12);tone(n+oct*12,t,d,$("waveB").value,.12)});$("status").textContent="Playing both waveforms together."};
+ const names=["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+ for(let i=0;i<24;i++){let midi=60+i,pc=i%12,k=document.createElement("button");k.className="key"+([1,3,6,8,10].includes(pc)?" black":"");k.textContent=names[pc]+(Math.floor(midi/12)-1);k.onclick=()=>{stop();tone(midi,audio().currentTime+.02,.45,$("noteWave").value,Number($("gain").value)/100*.3);$("status").textContent="Note "+names[pc]+" · MIDI "+midi};$("piano").appendChild(k)}
+ $("download").onclick=()=>{let blob=new Blob([$("notes").value||"(No experiment notes recorded.)"],{type:"text/plain"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="instrument-comparison-notes.txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+ $("clearNotes").onclick=()=>{$("notes").value=""};
+ refreshLabels();
+})();
+</script>
+</body>
+                                                                      </html>
