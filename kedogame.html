@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEDO: The Game</title>
+<style>
+:root{--bg:#080d0b;--panel:#101a15;--line:#294637;--green:#8cffb0;--dim:#9bb5a4;--amber:#ffd479;--red:#ff8585}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#14261b 0%,var(--bg) 65%);color:#e6f4e9;font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+header{padding:20px 16px 12px;text-align:center}
+h1{margin:0;color:var(--green);font-size:clamp(1.8rem,7vw,3rem);letter-spacing:.08em;text-shadow:0 0 18px #43ff8540}
+.subtitle{color:var(--dim);margin-top:4px}
+main{max-width:900px;margin:auto;padding:10px 14px 28px;display:grid;gap:14px}
+.panel{background:#0d1712eF;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:0 8px 30px #0003}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:#142219;border:1px solid #284332;border-radius:10px;padding:9px;text-align:center}
+.stat span{display:block;color:var(--dim);font-size:.78rem;text-transform:uppercase;letter-spacing:.08em}
+.stat strong{font-size:1.25rem;color:var(--green)}
+h2{font-size:1.05rem;color:var(--green);margin:0 0 10px}
+#story{min-height:58px}
+#map{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:5px;max-width:480px;margin:10px auto}
+.tile{aspect-ratio:1;border:1px solid #31483a;border-radius:6px;background:#17241b;display:grid;place-items:center;font-size:clamp(.75rem,3vw,1.25rem);font-weight:700;user-select:none}
+.tile.wall{background:#26342b;color:#617768}
+.tile.player{background:#245d38;color:#c9ffd7;border-color:#8cffb0;box-shadow:0 0 12px #53ff8c40}
+.tile.exit{color:var(--amber);border-color:#8a713e}
+.tile.cache{color:#9bd7ff}
+.tile.enemy{color:#ff9999}
+.tile.done{opacity:.35}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;max-width:250px;margin:10px auto 0}
+button{font:inherit;color:#eaffef;background:#1b3022;border:1px solid #3c684a;border-radius:9px;padding:11px 9px;cursor:pointer;touch-action:manipulation}
+button:hover{background:#25452f}
+button:active{transform:translateY(1px)}
+button:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.controls button{font-size:1.2rem;min-height:46px}
+.controls .empty{visibility:hidden}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.actions button{flex:1}
+#log{height:160px;overflow:auto;background:#050a07;border:1px solid #22382a;border-radius:8px;padding:10px;font: .86rem/1.5 ui-monospace,SFMono-Regular,Consolas,monospace}
+.logline{margin:0 0 5px;color:#b7cbbd}.good{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+.help{color:var(--dim);font-size:.9rem}
+.overlay{display:none;position:fixed;inset:0;background:#020604dc;z-index:5;place-items:center;padding:20px}
+.overlay.show{display:grid}
+.modal{max-width:430px;width:100%;text-align:center;background:#101b14;border:1px solid #548b63;border-radius:16px;padding:24px}
+.modal h2{font-size:1.5rem}
+@media(min-width:700px){main{grid-template-columns:1fr 1fr}.stats,.mission,.logpanel{grid-column:1/-1}.gamepanel{grid-column:1}.rightcol{display:grid;gap:14px;align-content:start}}
+</style>
+</head>
+<body>
+<header><h1>KEDO: THE GAME</h1><div class="subtitle">A tiny offline terminal-world adventure · build 0.1</div></header>
+<main>
+<section class="panel stats">
+ <div class="stat"><span>Integrity</span><strong id="hp">3 / 3</strong></div>
+ <div class="stat"><span>Data shards</span><strong id="shards">0 / 3</strong></div>
+ <div class="stat"><span>Sector</span><strong id="sector">01</strong></div>
+</section>
+<section class="panel mission"><h2>MISSION 01 — RECOVER SOFYA'S CACHE</h2><div id="story">KEDO booted into recovery mode. Three data shards are scattered through the sector. Collect them, then reach the amber exit. Watch out for rogue processes!</div></section>
+<section class="panel gamepanel">
+ <h2>SECTOR MAP</h2>
+ <div id="map" aria-label="Game map"></div>
+ <div class="controls" aria-label="Movement controls">
+  <span class="empty"></span><button data-move="0,-1" aria-label="Move up">▲</button><span class="empty"></span>
+  <button data-move="-1,0" aria-label="Move left">◀</button><button data-move="0,1" aria-label="Move down">▼</button><button data-move="1,0" aria-label="Move right">▶</button>
+ </div>
+ <p class="help">Move with arrow keys / WASD or the buttons. Walls block movement. Rogue processes cost 1 integrity.</p>
+</section>
+<div class="rightcol">
+<section class="panel"><h2>COMMAND DECK</h2><div class="actions">
+ <button id="scan">SCAN SECTOR</button><button id="restart">REBOOT RUN</button>
+</div><p class="help">Scan gives a hint about the nearest shard. Reboot resets the current run.</p></section>
+<section class="panel"><h2>FIELD NOTES</h2><div id="hint">SYSTEM: collect all 3 shards before entering the exit.</div></section>
+</div>
+<section class="panel logpanel"><h2>SYSTEM LOG</h2><div id="log" role="log" aria-live="polite"></div></section>
+</main>
+<div class="overlay" id="overlay"><div class="modal"><h2 id="endtitle">SECTOR CLEARED</h2><p id="endtext"></p><button id="again">PLAY AGAIN</button></div></div>
+<script>
+(() => {
+ const W=9,H=9;
+ const base=[
+ "#########",
+ "#P..#..C#",
+ "#.#.#.#.#",
+ "#.#...#.#",
+ "#.###.#.#",
+ "#C....E.#",
+ "###.#.###",
+ "#C......#",
+ "#########"
+ ];
+ // Rogue processes move on their own tiles; the player can bump into them.
+ let map=[],player={x:1,y:1},hp=3,shards=0,ended=false,turn=0,enemies=[{x:7,y:3},{x:5,y:7}],collected=new Set();
+ const $=id=>document.getElementById(id);
+ function parseMap(){map=base.map(r=>r.split(""));player={x:1,y:1};hp=3;shards=0;ended=false;turn=0;enemies=[{x:7,y:3},{x:5,y:7}];collected=new Set();$("overlay").classList.remove("show");$("story").textContent="KEDO booted into recovery mode. Three data shards are scattered through the sector. Collect them, then reach the amber exit. Watch out for rogue processes!";$("hint").textContent="SYSTEM: collect all 3 shards before entering the exit.";log("KEDO kernel online. Input accepted.","good");log("Mission loaded: recover Sofya's cache.");render();}
+ function log(s,cls=""){let p=document.createElement("p");p.className="logline "+cls;p.textContent="> "+s;$("log").appendChild(p);$("log").scrollTop=$("log").scrollHeight;}
+ function tileAt(x,y){return map[y]?.[x]||"#";}
+ function render(){
+  $("map").innerHTML="";
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   let t=document.createElement("div");t.className="tile";let c=tileAt(x,y);
+   if(c==="#")t.classList.add("wall");
+   if(c==="E")t.classList.add("exit");
+   if(c==="C"&&!collected.has(x+","+y))t.classList.add("cache");
+   if(collected.has(x+","+y))t.classList.add("done");
+   if(enemies.some(e=>e.x===x&&e.y===y)){t.classList.add("enemy");t.textContent="×";}
+   else if(player.x===x&&player.y===y){t.classList.add("player");t.textContent="K";}
+   else if(c==="#")t.textContent="▪";
+   else if(c==="E")t.textContent="⇧";
+   else if(c==="C"&&!collected.has(x+","+y))t.textContent="◆";
+   else t.textContent="";
+   $("map").appendChild(t);
+  }
+  $("hp").textContent=hp+" / 3";$("shards").textContent=shards+" / 3";$("sector").textContent="01";
+ }
+ function move(dx,dy){
+  if(ended)return;let nx=player.x+dx,ny=player.y+dy;
+  if(tileAt(nx,ny)==="#"){log("Blocked: solid data wall.","warn");return;}
+  player={x:nx,y:ny};turn++;
+  let enemy=enemies.find(e=>e.x===nx&&e.y===ny);
+  if(enemy){hp--;log("Rogue process collision! Integrity -1.","bad");enemy.x=7;enemy.y=3;if(hp<=0){render();finish(false);return;}}
+  let key=nx+","+ny;
+  if(tileAt(nx,ny)==="C"&&!collected.has(key)){collected.add(key);shards++;log("Data shard recovered ("+shards+"/3).","good");if(shards===3){$("story").textContent="All shards recovered! Sofya's cache is intact. Reach the amber exit to complete the mission.";$("hint").textContent="EXIT UNLOCKED: find the amber ⇧ tile.";}}
+  if(tileAt(nx,ny)==="E"){if(shards===3){render();finish(true);return;}else log("Exit locked. Cache fragments missing: "+(3-shards)+".","warn");}
+  if(turn%2===0)moveEnemies();
+  render();
+ }
+ function moveEnemies(){
+  for(let e of enemies){
+   const opts=[[1,0],[-1,0],[0,1],[0,-1]].sort(()=>Math.random()-.5);
+   for(let [dx,dy] of opts){let nx=e.x+dx,ny=e.y+dy;if(tileAt(nx,ny)!=="#"&&!enemies.some(o=>o!==e&&o.x===nx&&o.y===ny)&&!(player.x===nx&&player.y===ny)){e.x=nx;e.y=ny;break;}}
+  }
+ }
+ function finish(win){ended=true;$("overlay").classList.add("show");$("endtitle").textContent=win?"MISSION COMPLETE":"KERNEL PANIC";$("endtext").textContent=win?"Sofya's cache has been recovered. KEDO is stable again. Turns used: "+turn+".":"Integrity reached zero. The sector is still there; reboot and try a different route.";log(win?"Mission complete. Cache restored.":"Integrity depleted. Recovery required.",win?"good":"bad");}
+ function scan(){
+  if(ended)return;let targets=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(tileAt(x,y)==="C"&&!collected.has(x+","+y))targets.push({x,y,d:Math.abs(x-player.x)+Math.abs(y-player.y)});
+  if(!targets.length){$("hint").textContent="SCAN: all shards recovered. Navigate to the amber exit.";log("Scan complete: no uncollected shards.");return;}
+  targets.sort((a,b)=>a.d-b.d);let t=targets[0],dx=t.x-player.x,dy=t.y-player.y;let dir=Math.abs(dx)>Math.abs(dy)?(dx>0?"east":"west"):(dy>0?"south":"north");$("hint").textContent="SCAN: nearest shard is roughly "+t.d+" steps away, toward the "+dir+".";log("Scan complete. Nearest shard: "+dir+".","good");
+ }
+ document.querySelectorAll("[data-move]").forEach(b=>b.addEventListener("click",()=>move(...b.dataset.move.split(",").map(Number))));
+ $("scan").addEventListener("click",scan);$("restart").addEventListener("click",()=>{parseMap();$("log").innerHTML="";log("Run rebooted.","good");});$("again").addEventListener("click",()=>{parseMap();$("log").innerHTML="";});
+ document.addEventListener("keydown",e=>{let keys={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};let k=e.key.length===1?e.key.toLowerCase():e.key;if(keys[k]){e.preventDefault();move(...keys[k]);}});
+ parseMap();
+})();
+</script>
+</body>
+</html>
