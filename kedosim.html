@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KEDO Terminal Simulator</title>
+<style>
+:root{--bg:#090d12;--panel:#111923;--line:#2b3b4b;--text:#d9f5e5;--muted:#91ad9f;--green:#8dffb2;--blue:#8bc9ff;--amber:#ffd479;--red:#ff9393;--mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#17252a,#080b10 65%);color:var(--text);font:15px/1.5 system-ui,sans-serif;min-height:100vh}
+header{padding:22px 16px 18px;text-align:center;border-bottom:1px solid var(--line)}
+.tag{font:700 11px var(--mono);letter-spacing:.18em;color:var(--green)}
+h1{margin:7px 0;font-size:clamp(1.8rem,6vw,3rem);line-height:1.1;letter-spacing:-.04em}
+header p{color:var(--muted);margin:8px auto 0;max-width:650px}
+main{width:min(1000px,100%);margin:auto;padding:18px 12px 36px}
+.window{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#080c10;box-shadow:0 16px 50px #0007}
+.titlebar{display:flex;align-items:center;gap:8px;padding:10px 13px;background:#17212a;border-bottom:1px solid var(--line)}
+.dot{width:10px;height:10px;border-radius:50%;background:#536575}.dot:first-child{background:#ff7979}.dot:nth-child(2){background:#ffd479}.dot:nth-child(3){background:#8dffb2}
+.title{margin-left:6px;font:12px var(--mono);color:var(--muted)}
+#screen{height:min(55vh,510px);min-height:300px;overflow-y:auto;padding:15px;font:14px/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;scroll-behavior:smooth}
+.line{min-height:1.5em}.system{color:var(--blue)}.success{color:var(--green)}.warning{color:var(--amber)}.error{color:var(--red)}.muted{color:var(--muted)}
+.promptrow{display:flex;gap:8px;align-items:center;padding:12px 14px;border-top:1px solid #23313e;background:#0d1319}
+.promptlabel{font:700 14px var(--mono);color:var(--green);white-space:nowrap}
+#command{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font:14px var(--mono);padding:5px 0}
+#run{background:var(--green);color:#092015;border:0;border-radius:7px;padding:8px 12px;font-weight:800}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+button,.toolbar button{font:600 13px system-ui;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#18232e;color:var(--text)}
+button:hover{filter:brightness(1.15)}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:15px}
+h2{font-size:1rem;margin:0 0 8px}.card p,.card li{font-size:13px;color:var(--muted)}
+code{font-family:var(--mono);color:var(--green);overflow-wrap:anywhere}
+ul{padding-left:20px;margin:8px 0}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px;border-top:1px solid var(--line)}
+@media(max-width:600px){.info{grid-template-columns:1fr}#screen{height:48vh;padding:11px}.promptrow{gap:6px;padding:10px}.promptlabel{font-size:12px}#run{padding:8px}}
+</style>
+</head>
+<body>
+<header><div class="tag">L3SS1Q LAB // KEDO PROJECT</div><h1>KEDO Terminal Simulator</h1><p>A safe, browser-based pretend terminal inspired by KEDO DOS. Commands affect only this simulated filesystem.</p></header>
+<main>
+<div class="window">
+  <div class="titlebar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">KEDO DOS · simulator · local sandbox</span></div>
+  <div id="screen" role="log" aria-live="polite"></div>
+  <form class="promptrow" id="form" autocomplete="off">
+    <span class="promptlabel" id="promptlabel">KEDO&gt;</span>
+    <input id="command" aria-label="Enter a KEDO command" placeholder="Type help and press Enter…" autocapitalize="off" spellcheck="false">
+    <button id="run" type="submit">RUN</button>
+  </form>
+</div>
+<div class="toolbar">
+<button data-command="help">help</button><button data-command="ls">ls</button><button data-command="pwd">pwd</button><button data-command="cat readme.txt">cat readme.txt</button><button data-command="ver">ver</button><button id="clearBtn">Clear screen</button><button id="resetBtn">Reset filesystem</button>
+</div>
+<div class="info">
+<section class="card"><h2>Try these commands</h2>
+<ul>
+<li><code>help</code> — list commands</li><li><code>ls</code> — list files and folders</li><li><code>cd docs</code> — enter a directory</li><li><code>cat readme.txt</code> — read a file</li><li><code>echo hello world</code> — print text</li><li><code>write notes.txt hello there</code> — create or replace a file</li><li><code>mkdir projects</code> — create a folder</li><li><code>touch todo.txt</code> — create an empty file</li><li><code>whoami</code> and <code>ver</code> — inspect the simulated system</li>
+</ul></section>
+<section class="card"><h2>Simulator notes</h2><p>This is an educational simulation, not a real operating system. It cannot access your device's files, run programs, change accounts, or execute shell commands.</p><p>The filesystem starts with sample files. Changes stay in this page while it is open; use <code>export</code> to download a JSON save, or <code>import</code> to load one.</p><p>Tip: use <code>help</code> for the full command list. Commands are case-insensitive; file names are stored as typed.</p></section>
+</div>
+</main><footer>L3SS1Q LAB · KEDO Terminal Simulator · No internet required</footer>
+<script>
+(()=>{
+const $=id=>document.getElementById(id), screen=$('screen'), input=$('command');
+const initialFS=()=>({
+  'readme.txt':{type:'file',content:'Welcome to the KEDO Terminal Simulator!\nThis is a fictional environment for experimenting with commands.\nTry: help, ls, cd docs, cat welcome.txt'},
+  'docs':{type:'dir',children:{
+    'welcome.txt':{type:'file',content:'Welcome, operator.\n\nThis terminal is a simulation.\nExplore the filesystem, create notes, and have fun.'},
+    'commands.txt':{type:'file',content:'Useful commands:\nhelp, ls, pwd, cd, cat, echo, write, touch, mkdir, rm, rmdir, clear, ver, whoami, date, beep, tree, export, import'}
+  }},
+  'home':{type:'dir',children:{
+    'user.txt':{type:'file',content:'username=operator\npermissions=standard\nprofile=local-demo'},
+    'notes.txt':{type:'file',content:'Remember: all files here are simulated.'}
+  }},
+  'system':{type:'dir',children:{
+    'config.ini':{type:'file',content:'[system]\nname=KEDO DOS\nprompt=KEDO>\ntelemetry=disabled\nsubscription=none'},
+    'version.txt':{type:'file',content:'KEDO DOS version 2.12132034+2.12132034i'}
+  }}
+});
+let fs=initialFS(), cwd=[], history=[], histIndex=0, currentUser='operator';
+function getDir(path=cwd){let node={type:'dir',children:fs};for(const part of path){if(!node.children||!node.children[part]||node.children[part].type!=='dir')return null;node=node.children[part]}return node;}
+function resolvePath(raw){if(!raw||raw==='.')return [...cwd];let parts=raw.startsWith('/')?[]:[...cwd];for(const p of raw.split('/')){if(!p||p==='.')continue;if(p==='..')parts.pop();else parts.push(p)}return parts;}
+function locate(raw){let parts=resolvePath(raw), name=parts.pop(), dir=getDir(parts);if(!name)return {node:dir,path:parts};return {node:dir?.children?.[name],dir,name,path:parts};}
+function out(text='',cls=''){const div=document.createElement('div');div.className='line '+cls;div.textContent=text;screen.appendChild(div);screen.scrollTop=screen.scrollHeight;}
+function prompt(){ $('promptlabel').textContent='KEDO:'+('/'+cwd.join('/')||'/')+'>'; }
+function pathString(parts=cwd){return '/'+parts.join('/');}
+function help(){out('KEDO DOS — available commands','system');out('  help                         Show this help');out('  ls [path]                    List directory contents');out('  pwd                          Print current directory');out('  cd <path>                    Change directory');out('  cat <file>                   Display a text file');out('  echo <text>                  Print text');out('  write <file> <text>          Create/replace a text file');out('  touch <file>                 Create an empty file');out('  mkdir <folder>               Create a folder');out('  rm <file>                    Delete a file');out('  rmdir <empty-folder>         Delete an empty folder');out('  tree                         Show the directory tree');out('  whoami                       Show current simulated user');out('  ver                          Show simulated KEDO version');out('  date                         Show current date');out('  beep                         Play a short tone (if supported)');out('  clear                        Clear the screen');out('  export                       Download filesystem as JSON');out('  import                       Load a previously exported JSON save');out('  reset                        Reset the simulated filesystem');out('Paths can use /, ., and .. . This is a sandbox; no real shell commands run.','muted');}
+function list(path){let dir=path?locate(path).node:getDir();if(path&&(!dir||dir.type!=='dir')){out('ls: directory not found: '+path,'error');return;}let entries=Object.entries(dir.children||{}).sort(([a],[b])=>a.localeCompare(b));if(!entries.length){out('(empty)','muted');return;}for(const [name,n] of entries)out((n.type==='dir'?'[DIR]  ':'[FILE] ')+name+(n.type==='dir'?'/':''),n.type==='dir'?'system':'');}
+function parentFor(name){let loc=locate(name);if(!loc.name){return {error:'A file or folder name is required.'};}if(loc.name==='.'||loc.name==='..')return {error:'Choose a normal name.'};if(!loc.dir)return {error:'Parent directory does not exist.'};return loc;}
+function command(raw){
+ const trimmed=raw.trim();if(!trimmed)return;out('KEDO:'+pathString()+'> '+trimmed,'muted');
+ const first=trimmed.match(/^(\S+)(?:\s+([\s\S]*))?$/), cmd=first[1].toLowerCase(), rest=first[2]||'';
+ const oneArg=()=>rest.trim();
+ if(cmd==='help'||cmd==='?'){help();return;}
+ if(cmd==='ver'||cmd==='version'){out('KEDO DOS version 2.12132034+2.12132034i','success');out('Simulator build: L3SS1Q LAB / browser edition','muted');return;}
+ if(cmd==='pwd'){out(pathString());return;}
+ if(cmd==='whoami'){out(currentUser);return;}
+ if(cmd==='date'){out(new Date().toString());return;}
+ if(cmd==='echo'){out(rest);return;}
+ if(cmd==='ls'||cmd==='dir'){list(oneArg());return;}
+ if(cmd==='cd'){let dest=oneArg()||'/';if(dest==='/'){cwd=[];prompt();return;}let p=resolvePath(dest),d=getDir(p);if(!d){out('cd: directory not found: '+dest,'error');return;}cwd=p;prompt();return;}
+ if(cmd==='cat'||cmd==='type'){let name=oneArg();if(!name){out('Usage: cat <file>','warning');return;}let n=locate(name).node;if(!n||n.type!=='file'){out('cat: file not found: '+name,'error');return;}out(n.content);return;}
+ if(cmd==='write'){let m=rest.match(/^(\S+)\s+([\s\S]*)$/);if(!m){out('Usage: write <file> <text>','warning');return;}let loc=parentFor(m[1]);if(loc.error){out(loc.error,'error');return;}if(loc.node&&loc.node.type==='dir'){out('write: that name is a directory.','error');return;}loc.dir.children[loc.name]={type:'file',content:m[2]};out('Saved '+m[1],'success');return;}
+ if(cmd==='touch'||cmd==='mkdir'){let name=oneArg();if(!name){out('Usage: '+cmd+' <name>','warning');return;}let loc=parentFor(name);if(loc.error){out(loc.error,'error');return;}if(loc.node){out(cmd+': already exists: '+name,'error');return;}loc.dir.children[loc.name]=cmd==='mkdir'?{type:'dir',children:{}}:{type:'file',content:''};out('Created '+(cmd==='mkdir'?'directory ':'file ')+name,'success');return;}
+ if(cmd==='rm'||cmd==='del'){let name=oneArg();if(!name){out('Usage: rm <file>','warning');return;}let loc=locate(name);if(!loc.node){out('rm: not found: '+name,'error');return;}if(loc.node.type==='dir'){out('rm: that is a directory; use rmdir for an empty folder.','error');return;}delete loc.dir.children[loc.name];out('Deleted '+name,'success');return;}
+ if(cmd==='rmdir'){let name=oneArg(),loc=locate(name);if(!name){out('Usage: rmdir <empty-folder>','warning');return;}if(!loc.node||loc.node.type!=='dir'){out('rmdir: directory not found: '+name,'error');return;}if(Object.keys(loc.node.children).length){out('rmdir: directory is not empty.','error');return;}delete loc.dir.children[loc.name];out('Removed directory '+name,'success');return;}
+ if(cmd==='tree'){function walk(obj,prefix){for(const [name,n] of Object.entries(obj).sort(([a],[b])=>a.localeCompare(b))){out(prefix+name+(n.type==='dir'?'/':''),n.type==='dir'?'system':'');if(n.type==='dir')walk(n.children,prefix+'  ');}}out('/');walk(fs,'  ');return;}
+ if(cmd==='clear'||cmd==='cls'){screen.innerHTML='';return;}
+ if(cmd==='reset'){fs=initialFS();cwd=[];out('Filesystem reset to defaults.','success');prompt();return;}
+ if(cmd==='beep'){try{const C=window.AudioContext||window.webkitAudioContext;if(!C){out('Audio is not supported in this browser.','warning');return;}const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain();osc.frequency.value=880;gain.gain.value=.08;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.12);osc.onended=()=>ctx.close();out('BEEP!','success');}catch(e){out('Could not play audio in this browser.','warning');}return;}
+ if(cmd==='export'){const data={format:'KEDO-SIM-FS-1',cwd,fs};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kedo-simulator-save.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);out('Exported simulated filesystem as JSON.','success');return;}
+ if(cmd==='import'){out('Choose a JSON save file using the Import Save button below.','warning');$('importFile').click();return;}
+ out('Unknown command: '+cmd+'. Type help to see available commands.','error');
+}
+$('form').addEventListener('submit',e=>{e.preventDefault();let val=input.value;command(val);if(val.trim()){history.push(val);histIndex=history.length;}input.value='';input.focus();});
+input.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();if(histIndex>0){histIndex--;input.value=history[histIndex]||'';}}else if(e.key==='ArrowDown'){e.preventDefault();if(histIndex<history.length-1){histIndex++;input.value=history[histIndex]||'';}else{histIndex=history.length;input.value='';}}});
+document.querySelectorAll('[data-command]').forEach(b=>b.addEventListener('click',()=>{command(b.dataset.command);input.focus();}));
+$('clearBtn').addEventListener('click',()=>{screen.innerHTML='';input.focus();});
+$('resetBtn').addEventListener('click',()=>{fs=initialFS();cwd=[];screen.innerHTML='';out('Filesystem reset to defaults.','success');prompt();input.focus();});
+const importButton=document.createElement('button');importButton.textContent='Import save';importButton.id='importBtn';document.querySelector('.toolbar').appendChild(importButton);
+const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='.json,application/json';fileInput.id='importFile';fileInput.hidden=true;document.body.appendChild(fileInput);
+importButton.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',async()=>{const file=fileInput.files[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.format!=='KEDO-SIM-FS-1'||!data.fs||typeof data.fs!=='object')throw Error('This is not a KEDO simulator save.');fs=data.fs;cwd=Array.isArray(data.cwd)?data.cwd.filter(x=>typeof x==='string'):[];if(!getDir(cwd))cwd=[];screen.innerHTML='';out('Imported save successfully.','success');prompt();}catch(e){out('Import failed: '+e.message,'error');}fileInput.value='';});
+out('KEDO DOS version 2.12132034+2.12132034i','success');
+out('Welcome, '+currentUser+'. This is a simulator, not a real operating system.','system');
+out('Type help to see commands, or try: ls','muted');out('');
+prompt();input.focus();
+})();
+</script>
+</body>
+  </html>
