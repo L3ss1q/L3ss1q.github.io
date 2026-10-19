@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L3ss1q Computer Museum</title>
+<style>
+:root{--bg:#090d12;--panel:#131b24;--line:#304252;--text:#e8f1f8;--muted:#a8bac8;--accent:#8bd5ff;--gold:#ffd58a;--green:#9bf0bf}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#142638 0%,var(--bg) 65%);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+header{text-align:center;padding:25px 14px 16px}
+.kicker{text-transform:uppercase;letter-spacing:.2em;color:var(--gold);font-size:.75rem}
+h1{font-size:clamp(2rem,7vw,3.3rem);line-height:1.05;margin:8px 0;color:var(--accent);letter-spacing:.04em}
+header p{max-width:650px;margin:10px auto;color:var(--muted)}
+main{max-width:1100px;margin:auto;padding:10px 13px 35px;display:grid;gap:14px}
+.panel{background:#131b24ee;border:1px solid var(--line);border-radius:14px;padding:15px;box-shadow:0 8px 26px #0002}
+h2{margin:0 0 10px;color:var(--accent);font-size:1.12rem}
+.controls{display:grid;grid-template-columns:1fr;gap:9px}
+input,select,button{font:inherit}
+input,select{width:100%;background:#0a1118;color:var(--text);border:1px solid #40586a;border-radius:9px;padding:10px}
+button{background:#1c3040;color:var(--text);border:1px solid #42647b;border-radius:9px;padding:9px 12px;cursor:pointer;touch-action:manipulation}
+button:hover{background:#29475a}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filters{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.filters button{font-size:.86rem}
+.filters button.active{background:#33536a;border-color:var(--accent);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{background:#0c141c;border:1px solid #2b4050;border-radius:10px;text-align:center;padding:10px 5px}
+.stat strong{display:block;font-size:1.2rem;color:var(--gold)}.stat span{font-size:.75rem;color:var(--muted)}
+.timeline{display:grid;gap:10px}
+.event{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;background:#0e151d;border:1px solid #2b3e4c;border-radius:11px;padding:11px;cursor:pointer}
+.event:hover{border-color:#709ab3}.year{font-size:1rem;color:var(--gold);font-weight:800;align-self:start}
+.event h3{margin:0 0 3px;font-size:1rem}.event p{margin:0;color:var(--muted);font-size:.9rem}
+.tag{display:inline-block;border:1px solid #3a5366;border-radius:99px;padding:2px 7px;font-size:.7rem;color:#b8dcf3;margin-top:6px}
+#detail{display:none}.detailtitle{font-size:1.3rem;color:var(--gold);margin:0 0 4px}
+.detailmeta{color:var(--muted);font-size:.86rem;margin-bottom:10px}
+#detail p{margin:8px 0}.navrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.navrow button{flex:1}
+.note{color:var(--muted);font-size:.86rem}
+footer{text-align:center;color:#8195a5;padding:4px 14px 25px;font-size:.8rem}
+.empty{color:var(--muted);padding:18px;text-align:center;border:1px dashed #3a4b59;border-radius:10px}
+@media(min-width:720px){main{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)}.controls-panel,.stats,.timeline-panel{grid-column:1/-1}.controls{grid-template-columns:2fr 1fr}.timeline{grid-template-columns:1fr 1fr}.event{grid-template-columns:70px minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<header>
+<div class="kicker">L3ss1q interactive collection</div>
+<h1>THE COMPUTER MUSEUM</h1>
+<p>From the communication revolution that helped inspire computing to modern Windows and Linux. Explore the ideas, machines, and operating systems that shaped digital life.</p>
+</header>
+<main>
+<section class="panel stats">
+<div class="stat"><strong id="count">0</strong><span>EXHIBITS</span></div>
+<div class="stat"><strong>1830s → 2025</strong><span>TIME SPAN</span></div>
+<div class="stat"><strong>2</strong><span>MODERN ENDPOINTS</span></div>
+</section>
+<section class="panel controls-panel">
+<h2>EXHIBITION GUIDE</h2>
+<div class="controls">
+<div><label for="search">Search exhibits</label><input id="search" placeholder="Try: transistor, Linux, GUI, web…"></div>
+<div><label for="era">Filter by era</label><select id="era"><option value="all">All eras</option><option value="early">Telegraph & mechanical ideas</option><option value="electronic">Electronic computing</option><option value="personal">Personal computers</option><option value="network">Networks & the web</option><option value="systems">Operating systems</option><option value="modern">Modern era</option></select></div>
+</div>
+<div class="filters" id="quickfilters">
+<button class="active" data-kind="all">All</button><button data-kind="early">Early ideas</button><button data-kind="electronic">Electronic computers</button><button data-kind="personal">PC revolution</button><button data-kind="network">Connected world</button><button data-kind="systems">Operating systems</button><button data-kind="modern">Modern</button>
+</div>
+<p class="note">Select any exhibit to open its museum label. Dates indicate invention, announcement, first use, or release depending on the event; the detail panel explains which.</p>
+</section>
+<section class="panel timeline-panel">
+<h2>THE TIMELINE</h2>
+<div id="timeline" class="timeline"></div>
+</section>
+<section class="panel" id="detail" aria-live="polite">
+<h2>EXHIBIT LABEL</h2>
+<div class="detailtitle" id="dtitle"></div><div class="detailmeta" id="dmeta"></div><p id="dtext"></p><p id="dwhy"></p>
+<div class="navrow"><button id="prev">← Previous exhibit</button><button id="next">Next exhibit →</button></div>
+</section>
+<section class="panel">
+<h2>CURATOR'S NOTE</h2>
+<p>Computer history isn't a straight line from one “first computer” to the next. Telegraph networks helped normalize fast long-distance messaging; mathematical theories, punched-card systems, electronic circuits, software, and shared networks each contributed different pieces. Many breakthroughs were developed by teams, and some milestones happened over several years.</p>
+<p class="note">This is a curated introduction, not a complete inventory. Some dates are approximate or refer to a key public milestone rather than the very first experiment.</p>
+</section>
+</main>
+<footer>L3ss1q Computer Museum · Single-file offline exhibit · No tracking, no network requests</footer>
+<script>
+const exhibits=[
+{year:"1837",title:"The electric telegraph",era:"early",tag:"Communication",date:"1830s–1840s · Early practical systems",text:"Electrical telegraph systems turned messages into signals sent along wires, making long-distance communication dramatically faster than physical transport.",why:"Why it matters: telegraph networks helped establish ideas about signaling, codes, operators, and communication infrastructure that later computing and networking would build upon."},
+{year:"1837",title:"Babbage's Analytical Engine design",era:"early",tag:"Mechanical computing",date:"1837 · Proposed design",text:"Charles Babbage designed a programmable mechanical general-purpose computer with a “store” for numbers and a “mill” for processing them. The complete machine was not built in his lifetime.",why:"Why it matters: it included concepts resembling memory, a processor, and program control—long before electronic computers."},
+{year:"1843",title:"Ada Lovelace's published notes",era:"early",tag:"Programming",date:"1843 · Published translation and notes",text:"Ada Lovelace's extensive notes on the Analytical Engine included a method for calculating Bernoulli numbers and reflections on machines manipulating symbols as well as numbers.",why:"Why it matters: her work is an important early milestone in the history of computer programming. Historians debate how to describe the exact status of the algorithm."},
+{year:"1890",title:"Hollerith punched-card tabulator",era:"early",tag:"Data processing",date:"1890 · U.S. census processing",text:"Herman Hollerith's electrically read punched-card machines helped process data for the 1890 United States census.",why:"Why it matters: punched cards became a major way to store and feed data into business and scientific machines; Hollerith's company later became part of IBM."},
+{year:"1936",title:"The universal computing model",era:"early",tag:"Theory",date:"1936 · Alan Turing's paper",text:"Alan Turing described an abstract machine that could carry out calculations by following rules and reading and writing symbols.",why:"Why it matters: the model helped formalize what it means for a process to be computable and influenced computer science foundations."},
+{year:"1940s",title:"Electronic digital computers",era:"electronic",tag:"Electronics",date:"1930s–1940s · Several independent projects",text:"Machines such as Colossus, the Atanasoff–Berry Computer, and ENIAC emerged from different goals and designs. Some were specialized; others were more general-purpose.",why:"Why it matters: electronic switching made many calculations far faster than mechanical systems. There is no single universally agreed “first computer” because the answer depends on the definition."},
+{year:"1947",title:"The transistor",era:"electronic",tag:"Hardware",date:"1947 · Working point-contact transistor demonstrated at Bell Labs",text:"Researchers John Bardeen, Walter Brattain, and William Shockley were central to the invention and development of the transistor.",why:"Why it matters: transistors could replace bulky, power-hungry vacuum tubes, helping electronics become smaller, more reliable, and more efficient."},
+{year:"1958",title:"Integrated circuits",era:"electronic",tag:"Hardware",date:"1958–1959 · Early demonstrations and patents",text:"Jack Kilby and Robert Noyce independently developed important forms of integrated circuit technology.",why:"Why it matters: putting multiple electronic components onto a small piece of semiconductor enabled the increasingly dense circuits inside modern computers."},
+{year:"1969",title:"ARPANET sends its first message",era:"network",tag:"Networking",date:"October 1969 · First host-to-host connection",text:"ARPANET's first host-to-host message was attempted between UCLA and Stanford Research Institute. The system crashed after the first two letters of “LOGIN” were sent; the full login followed after the problem was fixed.",why:"Why it matters: ARPANET became a major precursor to the Internet, though the modern Internet developed from many networks and protocols."},
+{year:"1971",title:"The microprocessor era begins",era:"electronic",tag:"Hardware",date:"1971 · Intel 4004 introduced",text:"The Intel 4004 was an early commercially available single-chip microprocessor, originally designed for a calculator project.",why:"Why it matters: a central processing unit on one chip helped make smaller, more affordable programmable devices possible."},
+{year:"1970s",title:"UNIX and portable operating systems",era:"systems",tag:"Operating systems",date:"Developed from 1969; widely influential in the 1970s",text:"UNIX grew at Bell Labs and became influential for its multiuser design, composable tools, and portability as it was rewritten in C.",why:"Why it matters: UNIX ideas influenced BSD, macOS, Linux, and many server systems. Linux is UNIX-like, not the original UNIX."},
+{year:"1975",title:"The hobbyist computer movement",era:"personal",tag:"Personal computing",date:"1975 · Altair 8800 announced",text:"The Altair 8800 helped ignite a hobbyist microcomputer movement. Early users often programmed and operated machines with switches, lights, and add-on hardware.",why:"Why it matters: computing began moving beyond institutions and into homes, clubs, and small businesses."},
+{year:"1977",title:"The Apple II and home-computer wave",era:"personal",tag:"Personal computing",date:"1977 · Apple II released",text:"The Apple II was one of the early successful mass-market personal computers, with color graphics and a growing software ecosystem.",why:"Why it matters: ready-to-use home computers helped bring programming, games, and productivity software to a much wider audience."},
+{year:"1981",title:"The IBM PC",era:"personal",tag:"Personal computing",date:"1981 · IBM 5150 released",text:"IBM released its Personal Computer, using an Intel 8088 processor and PC DOS supplied by Microsoft. Its published architecture helped a compatible-PC ecosystem grow.",why:"Why it matters: IBM-compatible PCs became a major platform for business and home computing, with many later machines built by other companies."},
+{year:"1983",title:"The Internet's TCP/IP transition",era:"network",tag:"Networking",date:"January 1, 1983 · Major ARPANET transition",text:"ARPANET switched to TCP/IP, a suite of protocols that supports communication among interconnected networks.",why:"Why it matters: TCP/IP became a core foundation of the Internet. The Internet is the network of networks; the World Wide Web is a service that runs on it."},
+{year:"1984",title:"The Macintosh and graphical interfaces",era:"personal",tag:"User interface",date:"1984 · Original Macintosh released",text:"Apple's Macintosh popularized a compact personal computer experience centered on a graphical user interface, windows, icons, menus, and a mouse.",why:"Why it matters: GUI ideas had been explored earlier, notably at Xerox PARC; the Macintosh helped bring them to a broader consumer market."},
+{year:"1985",title:"Windows 1.0",era:"systems",tag:"Microsoft Windows",date:"1985 · First retail release",text:"Windows 1.0 was a graphical environment that ran on top of MS-DOS. Its windows could not freely overlap as they do in later Windows versions.",why:"Why it matters: it began the Windows product line that eventually became a major desktop operating-system platform."},
+{year:"1991",title:"Linux is announced",era:"systems",tag:"Open source",date:"1991 · First public announcement and early release",text:"Linus Torvalds announced a hobby operating-system kernel project. Combined with GNU tools and other software, Linux became the basis of many complete operating systems.",why:"Why it matters: Linux grew through collaborative development and became important on servers, supercomputers, embedded devices, and desktops."},
+{year:"1993",title:"Debian begins",era:"systems",tag:"Linux distribution",date:"1993 · Debian project founded",text:"Ian Murdock announced the Debian project with a goal of building a distribution openly and collaboratively. Debian is an operating-system distribution built around the Linux kernel and a large collection of software.",why:"Why it matters: Debian's package management, community governance, and release process influenced many other distributions."},
+{year:"1995",title:"Windows 95",era:"systems",tag:"Microsoft Windows",date:"1995 · Released",text:"Windows 95 brought a new Start menu and taskbar, long filename support, and a more integrated desktop experience. It still relied on substantial MS-DOS and Windows 9x architecture.",why:"Why it matters: its desktop conventions shaped how many people expected personal computers to work."},
+{year:"1989–1990",title:"The World Wide Web",era:"network",tag:"Web",date:"1989 proposal; 1990 implementation; 1991 wider availability",text:"Tim Berners-Lee proposed the World Wide Web at CERN and developed key pieces including a browser/editor, server, and HTML/HTTP/URL concepts.",why:"Why it matters: the Web made linked documents and later web applications accessible through browsers. It is not the same thing as the Internet itself."},
+{year:"2001",title:"Mac OS X",era:"systems",tag:"Operating systems",date:"2001 · First consumer release",text:"Mac OS X brought Apple's modern Mac operating system to consumers, combining a UNIX-based foundation with Apple's graphical desktop.",why:"Why it matters: it joined a UNIX-derived base with a polished consumer desktop; the system was later renamed macOS."},
+{year:"2001",title:"Windows XP",era:"systems",tag:"Microsoft Windows",date:"2001 · Released",text:"Windows XP combined the consumer Windows 9x line's usability focus with the Windows NT architecture, and became known for a long lifespan.",why:"Why it matters: XP helped make the NT family the mainstream foundation for later consumer Windows releases."},
+{year:"2007",title:"Smartphones reshape computing",era:"modern",tag:"Mobile computing",date:"Late 2000s · Smartphone era accelerates",text:"Touchscreen smartphones combined communication, cameras, sensors, apps, web access, and pocket-sized general-purpose computing.",why:"Why it matters: computing became something people carried constantly, changing software design and Internet use."},
+{year:"2009",title:"Windows 7",era:"systems",tag:"Microsoft Windows",date:"2009 · Released",text:"Windows 7 refined the Windows Vista-era foundation with changes to performance, taskbar interaction, and usability.",why:"Why it matters: it became a widely adopted desktop release during the shift toward modern 64-bit PCs."},
+{year:"2015",title:"Windows 10",era:"systems",tag:"Microsoft Windows",date:"2015 · Released",text:"Windows 10 returned the Start menu in a redesigned form and was developed as a continuously updated Windows platform.",why:"Why it matters: it bridged traditional desktop workflows with touch-oriented design and a changing update model."},
+{year:"2021",title:"Windows 11",era:"systems",tag:"Microsoft Windows",date:"2021 · Initial release",text:"Windows 11 introduced a redesigned interface with a centered taskbar and Start menu, alongside updated system requirements and security expectations.",why:"Why it matters: it represents Microsoft's current major Windows desktop design direction, though individual features and requirements vary by release and device."},
+{year:"2025",title:"Debian 13 “trixie”",era:"modern",tag:"Linux distribution",date:"August 2025 · Stable release",text:"Debian 13, codenamed “trixie,” became Debian's stable release in August 2025. It continues Debian's emphasis on a broad software archive, package management, and community-maintained free software.",why:"Why it matters: Debian shows how a long-running collaborative operating-system project can keep evolving across desktops, servers, and many hardware platforms."}
+];
+let selected=0,kind="all";
+const $=id=>document.getElementById(id);
+function searchable(e){return (e.year+" "+e.title+" "+e.era+" "+e.tag+" "+e.date+" "+e.text+" "+e.why).toLowerCase()}
+function visible(){let q=$("search").value.toLowerCase().trim(),era=$("era").value;return exhibits.map((e,i)=>({...e,i})).filter(e=>(kind==="all"||e.era===kind)&&(era==="all"||e.era===era)&&(!q||searchable(e).includes(q)))}
+function render(){
+ const list=visible();$("count").textContent=exhibits.length;$("timeline").innerHTML="";
+ if(!list.length){$("timeline").innerHTML='<div class="empty">No exhibits match that search. Try another term or choose “All eras.”</div>';return}
+ list.forEach(e=>{let b=document.createElement("article");b.className="event";b.tabIndex=0;b.setAttribute("role","button");b.innerHTML='<div class="year"></div><div><h3></h3><p></p><span class="tag"></span></div>';b.querySelector(".year").textContent=e.year;b.querySelector("h3").textContent=e.title;b.querySelector("p").textContent=e.text;b.querySelector(".tag").textContent=e.tag;b.onclick=()=>show(e.i);b.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();show(e.i)}};$("timeline").appendChild(b)});
+}
+function show(i){selected=i;let e=exhibits[i];$("detail").style.display="block";$("dtitle").textContent=e.title;$("dmeta").textContent=e.year+" · "+e.date;$("dtext").textContent=e.text;$("dwhy").textContent=e.why;$("detail").scrollIntoView({behavior:"smooth",block:"nearest"});}
+$("search").addEventListener("input",render);$("era").addEventListener("change",()=>{kind="all";document.querySelectorAll("#quickfilters button").forEach(b=>b.classList.toggle("active",b.dataset.kind==="all"));render()});
+document.querySelectorAll("#quickfilters button").forEach(b=>b.onclick=()=>{kind=b.dataset.kind;$("era").value="all";document.querySelectorAll("#quickfilters button").forEach(x=>x.classList.toggle("active",x===b));render()});
+$("prev").onclick=()=>show((selected-1+exhibits.length)%exhibits.length);$("next").onclick=()=>show((selected+1)%exhibits.length);
+render();
+</script>
+</body>
+                                                     </html>
