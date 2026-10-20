@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>L3ss1q — Unicode Playground</title>
+<style>
+:root{color-scheme:dark;--bg:#10131b;--panel:#191f2b;--line:#343d50;--text:#edf2ff;--muted:#aeb9d0;--accent:#a6c8ff;--bad:#ffb4ab}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
+header,main,footer{width:min(1050px,calc(100% - 28px));margin:auto}
+header{padding:28px 0 12px}
+h1{margin:0;font-size:clamp(1.7rem,5vw,2.5rem)}
+p{color:var(--muted)}
+main{padding-bottom:35px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:14px 0}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+button,select,input,textarea{font:inherit;color:var(--text);background:#111722;border:1px solid var(--line);border-radius:8px;padding:9px}
+button{cursor:pointer}
+button[aria-pressed="true"],button.primary{background:#273d5d;border-color:var(--accent)}
+textarea{width:100%;min-height:100px;resize:vertical}
+input{max-width:100%;width:100%}
+label{display:block;margin:10px 0 5px;font-weight:600}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:14px}
+.output{white-space:pre-wrap;overflow-wrap:anywhere;background:#0c1018;padding:12px;border-radius:8px;min-height:48px;font-family:ui-monospace,monospace}
+.small{font-size:.9rem;color:var(--muted)}
+.status{min-height:1.5em;color:var(--accent)}
+footer{padding:0 0 24px;color:var(--muted)}
+a{color:var(--accent)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <p><a href="index.html">← Back to L3ss1q's site</a></p>
+  <h1>Unicode Playground</h1>
+  <p>Turn text into code points, bytes, and binary. Then turn it all back again. Works offline.</p>
+  <nav aria-label="Playground modes">
+    <button data-tab="encode" aria-pressed="true">ENCODE</button>
+    <button data-tab="decode" aria-pressed="false">DECODE</button>
+    <button data-tab="inspect" aria-pressed="false">INSPECT</button>
+    <button data-tab="cursed" aria-pressed="false">CURSED MODE™</button>
+  </nav>
+</header>
+<main>
+<section id="encode" class="panel">
+  <h2>Text → Unicode → UTF-8</h2>
+  <label for="encodeText">Enter text</label>
+  <textarea id="encodeText" placeholder="KEDO 💀 猫 O̷̥̍O̵̤͝"></textarea>
+  <div class="row">
+    <div><label>Code points</label><div id="codePoints" class="output"></div><button data-copy="codePoints">Copy code points</button></div>
+    <div><label>UTF-8 hexadecimal bytes</label><div id="hexBytes" class="output"></div><button data-copy="hexBytes">Copy hex</button></div>
+    <div><label>UTF-8 binary bytes</label><div id="binaryBytes" class="output"></div><button data-copy="binaryBytes">Copy binary</button></div>
+  </div>
+  <p class="small">A Unicode code point is not the same as a UTF-8 byte. Emoji and many other characters use multiple bytes.</p>
+</section>
+<section id="decode" class="panel hidden">
+  <h2>Binary / hexadecimal → text</h2>
+  <label for="decodeMode">Input format</label>
+  <select id="decodeMode"><option value="binary">Binary bytes (8 bits each)</option><option value="hex">Hexadecimal bytes (e.g. F0 9F 92 80)</option></select>
+  <label for="decodeText">Bytes</label>
+  <textarea id="decodeText" placeholder="01001000 01101001"></textarea>
+  <button class="primary" id="decodeButton">Decode as UTF-8</button>
+  <label>Decoded text</label><div id="decoded" class="output"></div>
+  <p id="decodeStatus" class="status" role="status"></p>
+  <button data-copy="decoded">Copy decoded text</button>
+  <p class="small">Malformed UTF-8 is reported as an error rather than silently replaced.</p>
+</section>
+<section id="inspect" class="panel hidden">
+  <h2>Character inspector</h2>
+  <label for="inspectText">Enter a character or string</label>
+  <input id="inspectText" value="💀">
+  <div id="inspectResults" class="output"></div>
+  <p class="small">JavaScript strings use UTF-16 code units. For example, 💀 is one code point but two UTF-16 code units.</p>
+</section>
+<section id="cursed" class="panel hidden">
+  <h2>Cursed Mode™</h2>
+  <p>Generate valid Unicode characters. Rendering depends on the device's fonts.</p>
+  <label for="cursedCount">Character count (1–300)</label>
+  <input id="cursedCount" type="number" min="1" max="300" value="24">
+  <label><input id="includeCombining" type="checkbox" checked style="width:auto"> Include combining marks (visual chaos)</label>
+  <label><input id="includeEmoji" type="checkbox" checked style="width:auto"> Include emoji and symbols</label>
+  <button class="primary" id="generateCursed">Generate cursed text</button>
+  <div id="cursedOutput" class="output"></div>
+  <button data-copy="cursedOutput">Copy cursed text</button>
+</section>
+<p id="globalStatus" class="status" role="status"></p>
+</main>
+<footer>Unicode Playground · Plain UTF-8 under the hood · No libraries, no network requests.</footer>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const encoder = new TextEncoder();
+function bytesToHex(bytes){return [...bytes].map(b=>b.toString(16).toUpperCase().padStart(2,"0")).join(" ");}
+function bytesToBinary(bytes){return [...bytes].map(b=>b.toString(2).padStart(8,"0")).join(" ");}
+function codePointLabel(ch){return "U+"+ch.codePointAt(0).toString(16).toUpperCase().padStart(4,"0");}
+function updateEncode(){
+  const text=$("encodeText").value;
+  $("codePoints").textContent=[...text].map(ch=>`${ch}  ${codePointLabel(ch)}`).join("\n");
+  const bytes=encoder.encode(text);
+  $("hexBytes").textContent=bytesToHex(bytes);
+  $("binaryBytes").textContent=bytesToBinary(bytes);
+}
+$("encodeText").addEventListener("input",updateEncode); updateEncode();
+document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll("[data-tab]").forEach(b=>b.setAttribute("aria-pressed",String(b===btn)));
+  document.querySelectorAll("main section").forEach(s=>s.classList.toggle("hidden",s.id!==btn.dataset.tab));
+}));
+$("decodeButton").addEventListener("click",()=>{
+  const raw=$("decodeText").value.trim();
+  try{
+    let parts;
+    if($("decodeMode").value==="binary"){
+      const compact=raw.replace(/[\s,]+/g,"");
+      if(compact.length%8!==0 || !/^[01]*$/.test(compact)) throw Error("Binary must contain complete 8-bit bytes (spaces are optional).");
+      parts=compact.match(/.{8}/g)||[];
+      parts=parts.map(x=>parseInt(x,2));
+    }else{
+      const compact=raw.replace(/0x/gi,"").replace(/[\s,]+/g,"");
+      if(compact.length%2!==0 || !/^[0-9a-f]*$/i.test(compact)) throw Error("Hex must contain complete pairs of digits.");
+      parts=(compact.match(/.{2}/g)||[]).map(x=>parseInt(x,16));
+    }
+    $("decoded").textContent=new TextDecoder("utf-8",{fatal:true}).decode(new Uint8Array(parts));
+    $("decodeStatus").textContent="Decoded successfully.";
+  }catch(e){$("decoded").textContent="";$("decodeStatus").textContent="Error: "+e.message;}
+});
+function inspect(){
+  const text=$("inspectText").value;
+  if(!text){$("inspectResults").textContent="Enter at least one character.";return;}
+  $("inspectResults").textContent=[...text].map((ch,i)=>{
+    const bytes=encoder.encode(ch);
+    const cp=ch.codePointAt(0);
+    const nameHint = cp===0x1F480?"SKULL":cp===0x732B?"CAT":cp===0x1F4A9?"PILE OF POO":"(name lookup not built in)";
+    return `Character: ${ch}\nCode point: ${codePointLabel(ch)}\nUTF-8 hex: ${bytesToHex(bytes)}\nUTF-8 binary: ${bytesToBinary(bytes)}\nUTF-16 code units: ${ch.length}\nName: ${nameHint}`;
+  }).join("\n\n──────────\n\n")+`\n\nWhole string UTF-16 .length: ${text.length}\nCode points: ${[...text].length}`;
+}
+$("inspectText").addEventListener("input",inspect);inspect();
+const ranges=[
+  [0x2500,0x257F],
+  [0x0370,0x03FF],
+  [0x0400,0x04FF],
+  [0x2200,0x22FF],
+  [0x1F300,0x1F5FF],
+  [0x1F600,0x1F64F],
+  [0x1F680,0x1F6FF],
+  [0x1F900,0x1F9FF]
+];
+const combining=[0x0300,0x0301,0x0302,0x0303,0x0304,0x0307,0x0308,0x030A,0x0313,0x0334,0x0338,0x034F,0x20D0,0x20D1,0x20E5,0x20E6];
+function randomInt(n){return Math.floor(Math.random()*n);}
+$("generateCursed").addEventListener("click",()=>{
+  const count=Math.max(1,Math.min(300,Number.parseInt($("cursedCount").value,10)||24));
+  const rangesToUse=ranges.filter(r=>($("includeEmoji").checked || (r[0]<0x1F300)));
+  let result="";
+  for(let i=0;i<count;i++){
+    const range=rangesToUse[randomInt(rangesToUse.length)];
+    let cp=range[0]+randomInt(range[1]-range[0]+1);
+    if(cp>=0xD800&&cp<=0xDFFF){i--;continue;}
+    result+=String.fromCodePoint(cp);
+    if($("includeCombining").checked && Math.random()<0.38) result+=String.fromCodePoint(combining[randomInt(combining.length)]);
+  }
+  $("cursedOutput").textContent=result;
+});
+document.querySelectorAll("[data-copy]").forEach(btn=>btn.addEventListener("click",async()=>{
+  const value=$(btn.dataset.copy).textContent;
+  try{await navigator.clipboard.writeText(value);$("globalStatus").textContent="Copied!";}
+  catch{const area=document.createElement("textarea");area.value=value;document.body.appendChild(area);area.select();const ok=document.execCommand("copy");area.remove();$("globalStatus").textContent=ok?"Copied!":"Copy unavailable; select and copy the output manually.";}
+}));
+</script>
+  <a href="all-unicode.html">Want EVERY SINGLE GODDAMN UNICODE CHARACTER? Here. Lag warning btw.</a>
+</body>
+</html>
