@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALL UNICODE</title>
+</head>
+<body>
+<h1>ALL UNICODE CODE POINTS</h1>
+<p>Every code-point value from U+000000 through U+10FFFF, including invisible, unassigned, reserved, and noncharacter values. Rows are generated only when you request a range, so the page doesn't try to create over a million DOM rows at once.</p>
+<p>Unicode has 1,114,112 code-point values. Some are not assigned characters; some cannot be represented as Unicode scalar values; and browsers may not render every value as a visible glyph. The code point and numeric reference remain listed regardless.</p>
+
+<label for="start">Start code point (hex, U+ optional):</label>
+<input id="start" value="0000" inputmode="text">
+<label for="end">End code point (hex, U+ optional):</label>
+<input id="end" value="04FF" inputmode="text">
+<label for="limit">Maximum rows to generate (recommended 1,000–10,000):</label>
+<input id="limit" type="number" min="1" max="20000" value="4096">
+<button id="generate">Generate range</button>
+<button id="prev">Previous range</button>
+<button id="next">Next range</button>
+<p id="status" role="status">Ready. Start with U+0000–U+04FF.</p>
+<p id="rangeLinks"></p>
+<table>
+<thead><tr><th>Code point</th><th>HTML numeric reference</th><th>Rendered character</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+<script>
+"use strict";
+const startInput = document.getElementById("start");
+const endInput = document.getElementById("end");
+const limitInput = document.getElementById("limit");
+const rows = document.getElementById("rows");
+const status = document.getElementById("status");
+let lastStart = 0, lastEnd = 0;
+
+function parseHex(value) {
+  const cleaned = value.trim().replace(/^U\+/i, "").replace(/^0x/i, "");
+  if (!/^[0-9a-f]{1,6}$/i.test(cleaned)) throw new Error("Use a hexadecimal code point, e.g. 0000, 1F600, or U+10FFFF.");
+  const n = Number.parseInt(cleaned, 16);
+  if (n > 0x10FFFF) throw new Error("The maximum code-point value is U+10FFFF.");
+  return n;
+}
+function displayHex(n) { return "U+" + n.toString(16).toUpperCase().padStart(4, "0"); }
+function generate() {
+  try {
+    const start = parseHex(startInput.value);
+    let end = parseHex(endInput.value);
+    const maxRows = Math.max(1, Math.min(20000, Number.parseInt(limitInput.value, 10) || 4096));
+    if (end < start) throw new Error("End must be greater than or equal to start.");
+    if (end - start + 1 > maxRows) {
+      end = start + maxRows - 1;
+      endInput.value = end.toString(16).toUpperCase().padStart(4, "0");
+    }
+    lastStart = start;
+    lastEnd = end;
+    rows.replaceChildren();
+    const fragment = document.createDocumentFragment();
+    for (let cp = start; cp <= end; cp++) {
+      const tr = document.createElement("tr");
+      const codeCell = document.createElement("td");
+      codeCell.textContent = displayHex(cp);
+      const refCell = document.createElement("td");
+      refCell.textContent = "&#" + cp + ";";
+      const charCell = document.createElement("td");
+      // Surrogates are not Unicode scalar values and cannot be represented as characters.
+      // For those rows, show an explanatory label rather than inserting a replacement glyph.
+      if (cp >= 0xD800 && cp <= 0xDFFF) {
+        charCell.textContent = "[surrogate code point; not a Unicode scalar value]";
+      } else {
+        charCell.textContent = String.fromCodePoint(cp);
+      }
+      tr.append(codeCell, refCell, charCell);
+      fragment.appendChild(tr);
+    }
+    rows.appendChild(fragment);
+    status.textContent = `Showing ${displayHex(start)} through ${displayHex(end)} (${end - start + 1} rows).`;
+    document.getElementById("rangeLinks").textContent =
+      "Quick ranges: " + ["0000-00FF","0100-04FF","0500-0FFF","1000-1FFF","2000-2FFF","3000-9FFF","A000-FFFF","10000-1FFFF","20000-2FFFF","30000-3FFFF","40000-10FFFF"]
+      .map(s => {
+        const [a,b] = s.split("-");
+        return {label:"U+"+a+"–U+"+b, start:a, end:b};
+      }).map(item => {
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = item.label;
+        link.style.marginRight = "0.7em";
+        link.addEventListener("click", ev => {
+          ev.preventDefault();
+          startInput.value = item.start;
+          endInput.value = item.end;
+          generate();
+        });
+        return link;
+      }).reduce((container, link) => { container.appendChild(link); return container; }, document.createDocumentFragment());
+  } catch (err) {
+    status.textContent = "Error: " + err.message;
+  }
+}
+document.getElementById("generate").addEventListener("click", generate);
+document.getElementById("prev").addEventListener("click", () => {
+  const size = lastEnd - lastStart + 1 || 4096;
+  const start = Math.max(0, lastStart - size);
+  startInput.value = start.toString(16).toUpperCase();
+  endInput.value = Math.min(0x10FFFF, start + size - 1).toString(16).toUpperCase();
+  generate();
+});
+document.getElementById("next").addEventListener("click", () => {
+  const size = lastEnd - lastStart + 1 || 4096;
+  const start = Math.min(0x10FFFF, lastEnd + 1);
+  startInput.value = start.toString(16).toUpperCase();
+  endInput.value = Math.min(0x10FFFF, start + size - 1).toString(16).toUpperCase();
+  generate();
+});
+generate();
+</script>
+</body>
+  </html>
