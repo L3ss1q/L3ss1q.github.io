@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#151827">
+<title>L3ss1q Community Chat</title>
+<style>
+:root{color-scheme:dark;--bg:#10121d;--panel:#1a1e2e;--panel2:#22283b;--text:#f3f4ff;--muted:#aab0ca;--accent:#a9a2ff;--line:#353b55;--bad:#ff9aab;--good:#8de5b1}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#252846 0,#10121d 55%);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+main{width:min(850px,100%);margin:0 auto;padding:22px 14px 32px}
+header{padding:12px 4px 18px}
+h1{font-size:clamp(1.7rem,5vw,2.4rem);margin:0 0 5px;letter-spacing:-.04em}
+header p{margin:0;color:var(--muted)}
+.panel{background:rgba(26,30,46,.96);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:0 12px 35px #0002}
+.row{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:180px}
+label{font-size:.88rem;color:var(--muted)}
+input,textarea,button{font:inherit;border-radius:11px;border:1px solid var(--line);padding:11px 12px}
+input,textarea{background:#111522;color:var(--text);width:100%;outline:none}
+input:focus,textarea:focus{border-color:var(--accent)}
+button{background:var(--accent);color:#171629;font-weight:750;cursor:pointer;border-color:transparent}
+button:disabled{opacity:.5;cursor:not-allowed}
+#status{font-size:.9rem;color:var(--muted);margin:0 0 10px}
+#status.good{color:var(--good)}#status.bad{color:var(--bad)}
+#messages{display:flex;flex-direction:column;gap:10px;min-height:210px;max-height:55vh;overflow:auto;padding:2px}
+.message{background:var(--panel2);border:1px solid #343a54;border-radius:13px;padding:10px 12px;overflow-wrap:anywhere}
+.message-head{display:flex;gap:10px;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+.nickname{font-weight:800;color:var(--accent)}
+.time{font-size:.75rem;color:var(--muted);white-space:nowrap}
+.message-content{white-space:pre-wrap}
+#empty{color:var(--muted);text-align:center;padding:45px 10px}
+.composer textarea{resize:vertical;min-height:76px;max-height:180px}
+.composer .row{align-items:stretch}
+.composer button{min-width:104px}
+.note{font-size:.82rem;color:var(--muted);margin:10px 0 0}
+footer{text-align:center;color:var(--muted);font-size:.8rem;padding:8px}
+code{background:#101522;padding:2px 5px;border-radius:5px}
+@media(max-width:520px){main{padding:14px 10px 24px}.panel{padding:12px}.message-head{align-items:flex-start}.composer button{width:100%}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>💬 L3ss1q Community</h1>
+  <p>A little corner of the internet. Be kind, and don't share private information.</p>
+</header>
+
+<section class="panel">
+  <p id="status">Chat is not configured yet.</p>
+  <div class="row">
+    <div class="field">
+      <label for="nickname">Your chat nickname (1–24 characters)</label>
+      <input id="nickname" maxlength="24" autocomplete="nickname" placeholder="Pick a nickname">
+    </div>
+    <button id="saveNick" type="button">Save nickname</button>
+  </div>
+  <p class="note">Nicknames are not verified. Someone else may choose the same nickname, so don't use this as proof of identity.</p>
+</section>
+
+<section class="panel">
+  <div id="messages" aria-live="polite"><div id="empty">Messages will appear here once chat is connected.</div></div>
+  <p class="note">Showing the latest 100 messages. Public messages may be visible to anyone who can access this page.</p>
+</section>
+
+<section class="panel composer">
+  <label for="content">Message (1–500 characters)</label>
+  <div class="row" style="margin-top:6px">
+    <div class="field" style="min-width:0"><textarea id="content" maxlength="500" placeholder="Say something nice…"></textarea></div>
+    <button id="send" type="button" disabled>Send ↗</button>
+  </div>
+  <p class="note">Enter sends; Shift+Enter makes a new line. Don't post passwords, your address, school details, or other private information.</p>
+</section>
+<footer>Made for L3ss1q · Keep the community friendly.</footer>
+</main>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+/*
+SETUP:
+1. Replace SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY below with your project's
+   Project URL and Publishable key.
+2. Do NOT put a secret/service_role key or database password in this file.
+3. This basic public-chat prototype has no verified identities or robust spam
+   protection. Add a trusted server/Edge Function with rate limiting and
+   moderation before promoting it widely.
+*/
+const SUPABASE_URL = 'https://adfajwvxolihmkyzhxya.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_3h_zGFVJMnt3rhnO3JI1gw_ibSZBTss';
+
+const $ = id => document.getElementById(id);
+const statusEl = $('status');
+const messagesEl = $('messages');
+const nickInput = $('nickname');
+const contentInput = $('content');
+const sendButton = $('send');
+let supabase = null;
+let sending = false;
+let loadedIds = new Set();
+
+function setStatus(message, kind='') {
+  statusEl.textContent = message;
+  statusEl.className = kind;
+}
+function cleanText(value) {
+  return String(value ?? '').replace(/\u0000/g, '');
+}
+function validNickname(value) {
+  const v = cleanText(value).trim();
+  return v.length >= 1 && v.length <= 24;
+}
+function validContent(value) {
+  const v = cleanText(value).trim();
+  return v.length >= 1 && v.length <= 500;
+}
+function getNickname() {
+  return cleanText(nickInput.value).trim();
+}
+function formatTime(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+}
+function renderMessage(msg, prepend=false) {
+  if (!msg || loadedIds.has(msg.id)) return;
+  loadedIds.add(msg.id);
+  const empty = $('empty');
+  if (empty) empty.remove();
+
+  const article = document.createElement('article');
+  article.className = 'message';
+  article.dataset.id = String(msg.id);
+
+  const head = document.createElement('div');
+  head.className = 'message-head';
+  const nickname = document.createElement('span');
+  nickname.className = 'nickname';
+  nickname.textContent = cleanText(msg.nickname);
+  const time = document.createElement('time');
+  time.className = 'time';
+  time.dateTime = msg.created_at || '';
+  time.textContent = formatTime(msg.created_at);
+  const body = document.createElement('div');
+  body.className = 'message-content';
+  body.textContent = cleanText(msg.content);
+
+  head.append(nickname, time);
+  article.append(head, body);
+  if (prepend) messagesEl.prepend(article);
+  else messagesEl.append(article);
+
+  while (messagesEl.querySelectorAll('.message').length > 100) {
+    const first = messagesEl.querySelector('.message');
+    if (!first) break;
+    loadedIds.delete(Number(first.dataset.id));
+    first.remove();
+  }
+}
+function showEmpty(text) {
+  if (messagesEl.querySelector('.message')) return;
+  let empty = $('empty');
+  if (!empty) {
+    empty = document.createElement('div');
+    empty.id = 'empty';
+    messagesEl.append(empty);
+  }
+  empty.textContent = text;
+}
+function saveNickname() {
+  const nick = getNickname();
+  if (!validNickname(nick)) {
+    setStatus('Choose a nickname between 1 and 24 characters.', 'bad');
+    return false;
+  }
+  nickInput.value = nick;
+  try { localStorage.setItem('l3ss1q-chat-nickname', nick); } catch {}
+  setStatus('Nickname saved on this device.', 'good');
+  return true;
+}
+$('saveNick').addEventListener('click', saveNickname);
+try {
+  const saved = localStorage.getItem('l3ss1q-chat-nickname');
+  if (saved) nickInput.value = saved;
+} catch {}
+
+$('send').addEventListener('click', sendMessage);
+contentInput.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+});
+
+async function sendMessage() {
+  if (!supabase || sending) return;
+  if (!validNickname(getNickname())) {
+    setStatus('Choose and save a nickname first.', 'bad');
+    nickInput.focus();
+    return;
+  }
+  const content = cleanText(contentInput.value).trim();
+  if (!validContent(content)) {
+    setStatus('Write a message between 1 and 500 characters.', 'bad');
+    contentInput.focus();
+    return;
+  }
+  sending = true;
+  sendButton.disabled = true;
+  try {
+    const { error } = await supabase.from('messages').insert({
+      nickname: getNickname(),
+      content
+    });
+    if (error) throw error;
+    contentInput.value = '';
+    setStatus('Message sent.', 'good');
+  } catch (error) {
+    console.error(error);
+    setStatus('Could not send message. Check your connection and database policies.', 'bad');
+  } finally {
+    sending = false;
+    sendButton.disabled = false;
+  }
+}
+
+async function start() {
+  if (SUPABASE_URL.includes('PASTE_') || SUPABASE_PUBLISHABLE_KEY.includes('PASTE_')) {
+    setStatus('Setup needed: add your Supabase Project URL and Publishable key in this file.', 'bad');
+    showEmpty('Connect this page to your Supabase project to load messages.');
+    return;
+  }
+  try {
+    supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+    setStatus('Connecting to chat…');
+    const { data, error } = await supabase
+      .from('messages')
+      .select('id,nickname,content,created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) throw error;
+    messagesEl.replaceChildren();
+    loadedIds.clear();
+    const rows = (data || []).reverse();
+    if (!rows.length) showEmpty('No messages yet. Start the conversation!');
+    rows.forEach(msg => renderMessage(msg));
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+
+    const channel = supabase
+      .channel('public-chat-messages')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        payload => {
+          renderMessage(payload.new);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+        })
+      .subscribe((state) => {
+        if (state === 'SUBSCRIBED') {
+          setStatus('Connected — you can chat!', 'good');
+          sendButton.disabled = false;
+        } else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') {
+          setStatus('Messages loaded, but live updates failed. Refresh to try again.', 'bad');
+        }
+      });
+  } catch (error) {
+    console.error(error);
+    setStatus('Could not connect. Check the project URL, publishable key, table, and RLS policies.', 'bad');
+    showEmpty('The chat could not load. Check the setup and try refreshing.');
+  }
+}
+start();
+</script>
+</body>
+</html>
