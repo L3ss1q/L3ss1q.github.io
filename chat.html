@@ -195,36 +195,53 @@ contentInput.addEventListener('keydown', event => {
 
 async function sendMessage() {
   if (!supabase || sending) return;
+
   if (!validNickname(getNickname())) {
     setStatus('Choose and save a nickname first.', 'bad');
     nickInput.focus();
     return;
   }
+
   const content = cleanText(contentInput.value).trim();
+
   if (!validContent(content)) {
     setStatus('Write a message between 1 and 500 characters.', 'bad');
     contentInput.focus();
     return;
   }
+
   sending = true;
   sendButton.disabled = true;
+
   try {
-    const { error } = await supabase.from('messages').insert({
-      nickname: getNickname(),
-      content
-    });
+    const { data: result, error } = await supabase.functions.invoke(
+      'send-message',
+      {
+        body: {
+          nickname: getNickname(),
+          content
+        }
+      }
+    );
+
     if (error) throw error;
+    if (result?.error) throw new Error(result.error);
+
     contentInput.value = '';
     setStatus('Message sent.', 'good');
+
   } catch (error) {
     console.error(error);
-    setStatus('Could not send message. Check your connection and database policies.', 'bad');
+    setStatus(
+      error.message || 'Could not send message. Try again.',
+      'bad'
+    );
+
   } finally {
     sending = false;
     sendButton.disabled = false;
   }
 }
-
 async function start() {
   if (SUPABASE_URL.includes('PASTE_') || SUPABASE_PUBLISHABLE_KEY.includes('PASTE_')) {
     setStatus('Setup needed: add your Supabase Project URL and Publishable key in this file.', 'bad');
